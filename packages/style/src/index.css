@@ -1,0 +1,36 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #182230;
+  background: #f4f7fb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.demo-page {
+  min-height: 100vh;
+  padding: 32px;
+}
+
+.demo-page h1 {
+  margin: 0 0 24px;
+}
+
+[role='cell'] {
+  align-items: center;
+  background: #ffffff;
+  border-bottom: 1px solid #d9e0ea;
+  border-right: 1px solid #d9e0ea;
+  display: flex;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+[role='cell']:hover {
+  background: #eef5ff;
+}

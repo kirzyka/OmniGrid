@@ -1,0 +1,9 @@
+{
+  "name": "@omnigrid/plugin-base",
+  "version": "0.1.0",
+  "description": "Base plugins for OmniGrid",
+  "license": "MIT",
+  "dependencies": {
+    "@omnigrid/core": "0.1.0"
+  }
+}
