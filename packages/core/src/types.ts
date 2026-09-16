@@ -6,6 +6,7 @@ export interface ColumnDef<T> {
   field?: keyof T;
   accessor?: (row: T) => unknown;
   width?: number;
+  flex?: number;
   minWidth?: number;
   maxWidth?: number;
   hidden?: boolean;

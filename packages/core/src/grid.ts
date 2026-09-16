@@ -1,13 +1,13 @@
 import { EventBus } from './events';
 import { Store } from './store';
 import type {
-    GridApi,
-    GridEvents,
-    GridOptions,
-    GridPlugin,
-    GridState,
-    ViewportData,
-    ViewportState,
+  GridApi,
+  GridEvents,
+  GridOptions,
+  GridPlugin,
+  GridState,
+  ViewportData,
+  ViewportState,
 } from './types';
 import { Virtualizer } from './virtualizer';
 
@@ -53,7 +53,7 @@ export class Grid<T> implements GridApi<T> {
       state.viewport.scrollLeft,
       state.viewport.width,
     );
-    const columnOffsets = this.virtualizer.getColumnOffsets(visibleColumns);
+    const columnOffsets = this.virtualizer.getColumnOffsets(visibleColumns, state.viewport.width);
 
     return {
       rows: state.data.slice(rowRange.start, rowRange.end).map((data, index) => {
@@ -67,7 +67,7 @@ export class Grid<T> implements GridApi<T> {
       }),
       rowRange,
       columnRange,
-      totalWidth: this.virtualizer.getTotalWidth(visibleColumns),
+      totalWidth: this.virtualizer.getTotalWidth(visibleColumns, state.viewport.width),
       totalHeight: this.virtualizer.getTotalHeight(state.data.length),
     };
   }

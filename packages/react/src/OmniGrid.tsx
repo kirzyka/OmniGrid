@@ -46,9 +46,50 @@ export function OmniGrid<T>({
       ref={viewportRef}
       className={className}
       onScroll={handleScroll}
-      style={{ overflow: 'auto', position: 'relative', ...style }}
+      style={{ background: '#ffffff', overflow: 'auto', position: 'relative', ...style }}
     >
-      <div style={{ height: viewportData.totalHeight, minWidth: viewportData.totalWidth, position: 'relative' }}>
+      <div
+        style={{
+          height: viewportData.totalHeight + grid.getState().rowHeight,
+          minWidth: viewportData.totalWidth,
+          position: 'relative',
+        }}
+      >
+        <div
+          role="row"
+          style={{
+            background: '#e9eef5',
+            height: grid.getState().rowHeight,
+            minWidth: viewportData.totalWidth,
+            position: 'sticky',
+            top: 0,
+            zIndex: 1,
+          }}
+        >
+          {viewportData.columns.map((item) => (
+            <div
+              key={item.column.id}
+              role="columnheader"
+              style={{
+                alignItems: 'center',
+                borderBottom: '1px solid #c5cfdd',
+                borderRight: '1px solid #c5cfdd',
+                display: 'flex',
+                fontWeight: 600,
+                overflow: 'hidden',
+                padding: '0 12px',
+                position: 'absolute',
+                left: item.offset,
+                top: 0,
+                bottom: 0,
+                whiteSpace: 'nowrap',
+                width: item.width,
+              }}
+            >
+              {item.column.header ?? item.column.id}
+            </div>
+          ))}
+        </div>
         {viewportData.rows.map((row) => (
           <div
             key={row.id}
@@ -66,7 +107,7 @@ export function OmniGrid<T>({
                     left: item.offset,
                     overflow: 'hidden',
                     position: 'absolute',
-                    top: row.offset,
+                    top: row.offset + grid.getState().rowHeight,
                     width: item.width,
                   }}
                 >

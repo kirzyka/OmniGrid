@@ -34,3 +34,12 @@ body {
 [role='cell']:hover {
   background: #eef5ff;
 }
+
+[role='columnheader'] {
+  background: #e9eef5;
+  color: #334155;
+}
+
+[role='columnheader']:last-child {
+  border-right: 0;
+}

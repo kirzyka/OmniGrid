@@ -22,7 +22,7 @@ export class Virtualizer<T> {
     scrollLeft: number,
     viewportWidth: number,
   ): Range {
-    const offsets = this.getColumnOffsets(columns);
+    const offsets = this.getColumnOffsets(columns, viewportWidth);
     const start = this.findStart(offsets, scrollLeft);
     const end = this.findEnd(offsets, scrollLeft + viewportWidth);
     return {
@@ -31,10 +31,11 @@ export class Virtualizer<T> {
     };
   }
 
-  public getColumnOffsets(columns: ColumnDef<T>[]): VirtualItem[] {
+  public getColumnOffsets(columns: ColumnDef<T>[], viewportWidth = 0): VirtualItem[] {
+    const widths = this.getColumnWidths(columns, viewportWidth);
     let offset = 0;
     return columns.map((column, index) => {
-      const size = this.getColumnWidth(column);
+      const size = widths[index];
       const item = { index, offset, size };
       offset += size;
       return item;
@@ -45,8 +46,8 @@ export class Virtualizer<T> {
     return rowCount * this.options.rowHeight;
   }
 
-  public getTotalWidth(columns: ColumnDef<T>[]): number {
-    return this.getColumnOffsets(columns).reduce((total, item) => total + item.size, 0);
+  public getTotalWidth(columns: ColumnDef<T>[], viewportWidth = 0): number {
+    return this.getColumnOffsets(columns, viewportWidth).reduce((total, item) => total + item.size, 0);
   }
 
   private getRange(
@@ -65,9 +66,66 @@ export class Virtualizer<T> {
     };
   }
 
-  private getColumnWidth(column: ColumnDef<T>): number {
+  private getColumnWidths(columns: ColumnDef<T>[], viewportWidth: number): number[] {
+    const widths = columns.map((column) => this.getBaseColumnWidth(column));
+    const flexIndexes = columns
+      .map((column, index) => (column.flex && column.flex > 0 ? index : -1))
+      .filter((index) => index >= 0);
+
+    if (flexIndexes.length === 0) return widths;
+
+    const fixedWidth = widths.reduce(
+      (total, width, index) => flexIndexes.includes(index) ? total : total + width,
+      0,
+    );
+    const minimumFlexWidth = flexIndexes.reduce(
+      (total, index) => total + this.getMinColumnWidth(columns[index]),
+      0,
+    );
+    let remaining = Math.max(0, viewportWidth - fixedWidth - minimumFlexWidth);
+    const activeIndexes = new Set(flexIndexes);
+
+    flexIndexes.forEach((index) => {
+      widths[index] = this.getMinColumnWidth(columns[index]);
+    });
+
+    while (remaining > 0 && activeIndexes.size > 0) {
+      const flexTotal = [...activeIndexes].reduce(
+        (total, index) => total + (columns[index].flex ?? 0),
+        0,
+      );
+      let distributed = 0;
+
+      activeIndexes.forEach((index) => {
+        const column = columns[index];
+        const share = remaining * (column.flex ?? 0) / flexTotal;
+        const available = this.getMaxColumnWidth(column) - widths[index];
+        const addition = Math.min(share, Math.max(0, available));
+        widths[index] += addition;
+        distributed += addition;
+
+        if (addition < share) activeIndexes.delete(index);
+      });
+
+      if (distributed === 0) break;
+      remaining -= distributed;
+    }
+
+    return widths;
+  }
+
+  private getBaseColumnWidth(column: ColumnDef<T>): number {
+    if (column.flex && column.flex > 0) return this.getMinColumnWidth(column);
     const width = column.width ?? 120;
-    return Math.min(column.maxWidth ?? Infinity, Math.max(column.minWidth ?? 40, width));
+    return Math.min(this.getMaxColumnWidth(column), Math.max(this.getMinColumnWidth(column), width));
+  }
+
+  private getMinColumnWidth(column: ColumnDef<T>): number {
+    return Math.max(0, column.minWidth ?? 40);
+  }
+
+  private getMaxColumnWidth(column: ColumnDef<T>): number {
+    return Math.max(this.getMinColumnWidth(column), column.maxWidth ?? Infinity);
   }
 
   private findStart(items: VirtualItem[], offset: number): number {
