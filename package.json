@@ -14,7 +14,8 @@
   "workspaces": [
     "apps/*",
     "packages/*",
-    "plugins/*"
+    "plugins/base/*",
+    "plugins/pro/*"
   ],
   "devDependencies": {
     "typescript": "^5.0.0"

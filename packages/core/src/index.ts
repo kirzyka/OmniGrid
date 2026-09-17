@@ -4,6 +4,7 @@ export { Store } from './store';
 export type {
     CellRendererParams,
     ColumnDef,
+    DataProcessor,
     GridApi,
     GridEvents,
     GridOptions,
@@ -11,6 +12,7 @@ export type {
     GridState,
     Range,
     RowId,
+    SortDirection,
     ViewportData,
     ViewportState,
     VirtualItem

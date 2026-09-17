@@ -68,6 +68,22 @@ export function OmniGrid<T>({
             <div
               key={item.column.id}
               role="columnheader"
+              className="omnigrid-header-cell"
+              data-sort={item.column.sortState}
+              data-sortable={item.column.sortable === true ? 'true' : undefined}
+              aria-sort={item.column.sortState === 'asc'
+                ? 'ascending'
+                : item.column.sortState === 'desc'
+                  ? 'descending'
+                  : 'none'}
+              onClick={(event) => grid.headerClick(
+                item.column.id,
+                event.shiftKey || event.ctrlKey || event.metaKey,
+              )}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') grid.headerClick(item.column.id);
+              }}
+              tabIndex={0}
               style={{
                 alignItems: 'center',
                 borderBottom: '1px solid #c5cfdd',
@@ -84,7 +100,16 @@ export function OmniGrid<T>({
                 width: item.width,
               }}
             >
-              {item.column.header ?? item.column.id}
+              <span className="omnigrid-header-label">
+                {item.column.header ?? item.column.id}
+              </span>
+              <span className="omnigrid-header-tools">
+                {item.column.sortState && (
+                  <span className="omnigrid-sort-indicator" aria-hidden="true">
+                    {item.column.sortState === 'asc' ? '▲' : '▼'}
+                  </span>
+                )}
+              </span>
             </div>
           ))}
         </div>

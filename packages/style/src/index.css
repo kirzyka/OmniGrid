@@ -40,6 +40,27 @@ body {
   color: #334155;
 }
 
+.omnigrid-sort-indicator {
+  font-size: 10px;
+}
+
+.omnigrid-header-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.omnigrid-header-tools {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.omnigrid-header-cell[data-sortable='true'] {
+  cursor: pointer;
+}
+
 [role='columnheader']:last-child {
   border-right: 0;
 }

@@ -3,4 +3,12 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react()],
+  optimizeDeps: {
+    exclude: [
+      '@omnigrid/core',
+      '@omnigrid/react',
+      '@omnigrid/sorting-plugin',
+      '@omnigrid/style',
+    ],
+  },
 });

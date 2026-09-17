@@ -1,4 +1,6 @@
 export type RowId = string | number;
+export type SortDirection = 'asc' | 'desc';
+export type DataProcessor<T> = (data: T[]) => T[];
 
 export interface CellRendererParams<T> {
   value: unknown;
@@ -19,6 +21,7 @@ export interface ColumnDef<T> {
   maxWidth?: number;
   hidden?: boolean;
   sortable?: boolean;
+  sortState?: SortDirection;
 }
 
 export interface GridOptions<T> {
@@ -28,6 +31,7 @@ export interface GridOptions<T> {
   rowHeight?: number;
   rowOverscan?: number;
   columnOverscan?: number;
+  plugins?: GridPlugin<T>[];
 }
 
 export interface ViewportState {
@@ -70,6 +74,7 @@ export interface GridEvents<T> {
   stateChange: GridState<T>;
   viewportChange: ViewportState;
   dataChange: T[];
+  headerClick: { columnId: string; multiSort: boolean };
 }
 
 export interface GridPlugin<T> {
@@ -88,6 +93,9 @@ export interface GridApi<T> {
     listener: (payload: GridEvents<T>[EventName]) => void,
   ): () => void;
   registerPlugin(plugin: GridPlugin<T>): () => void;
+  registerDataProcessor(processor: DataProcessor<T>): () => void;
+  setColumns(columns: ColumnDef<T>[]): void;
+  headerClick(columnId: string, multiSort?: boolean): void;
   destroy(): void;
   isDestroyed(): boolean;
 }

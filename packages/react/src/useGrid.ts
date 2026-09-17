@@ -1,6 +1,6 @@
 import type { GridOptions, GridState, ViewportData } from '@omnigrid/core';
 import { Grid } from '@omnigrid/core';
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 
 export interface UseGridResult<T> {
   grid: Grid<T>;
@@ -21,10 +21,11 @@ export interface UseGridResult<T> {
  *   - все обращения к grid защищены проверкой grid.isDestroyed().
  */
 export function useGrid<T>(options: GridOptions<T>): UseGridResult<T> {
-  // Экземпляр Grid создаётся один раз за время жизни хука.
-  // В StrictMode инициализатор useState может быть вызван дважды — это
-  // безопасно: лишний экземпляр остаётся неиспользуемым.
-  const [grid] = useState(() => new Grid(options));
+  // Не используем ленивый инициализатор useState: в StrictMode React может
+  // вызвать его дважды, что дважды зарегистрирует один и тот же plugin.
+  const gridRef = useRef<Grid<T> | null>(null);
+  if (!gridRef.current) gridRef.current = new Grid(options);
+  const grid = gridRef.current;
 
   // options (и options.data) — новые объекты на КАЖДОМ рендере родителя.
   // Через ref эффект реагирует только на смену данных, а не на новый массив.

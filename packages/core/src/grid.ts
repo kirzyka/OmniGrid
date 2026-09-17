@@ -1,6 +1,7 @@
 import { EventBus } from './events';
 import { Store } from './store';
 import type {
+  DataProcessor,
   GridApi,
   GridEvents,
   GridOptions,
@@ -16,6 +17,7 @@ export class Grid<T> implements GridApi<T> {
   private readonly events = new EventBus<GridEvents<T>>();
   private readonly virtualizer: Virtualizer<T>;
   private readonly cleanupPlugins = new Set<() => void>();
+  private readonly dataProcessors = new Set<DataProcessor<T>>();
   private destroyed = false;
 
   public constructor(options: GridOptions<T>) {
@@ -34,6 +36,7 @@ export class Grid<T> implements GridApi<T> {
       columnOverscan: state.columnOverscan,
     });
     this.store.subscribe(() => this.events.emit('stateChange', this.store.getState()));
+    options.plugins?.forEach((plugin) => this.registerPlugin(plugin));
   }
 
   public getState(): GridState<T> {
@@ -42,9 +45,13 @@ export class Grid<T> implements GridApi<T> {
 
   public getViewportData(): ViewportData<T> {
     const state = this.getState();
+    const processedData = [...this.dataProcessors].reduce(
+      (data, processor) => processor(data),
+      state.data,
+    );
     const visibleColumns = state.columns.filter((column) => !column.hidden);
     const rowRange = this.virtualizer.getRowRange(
-      state.data.length,
+      processedData.length,
       state.viewport.scrollTop,
       state.viewport.height,
     );
@@ -56,7 +63,7 @@ export class Grid<T> implements GridApi<T> {
     const columnOffsets = this.virtualizer.getColumnOffsets(visibleColumns, state.viewport.width);
 
     return {
-      rows: state.data.slice(rowRange.start, rowRange.end).map((data, index) => {
+      rows: processedData.slice(rowRange.start, rowRange.end).map((data, index) => {
         const rowIndex = rowRange.start + index;
         return { id: rowIndex, data, index: rowIndex, offset: rowIndex * state.rowHeight };
       }),
@@ -68,7 +75,7 @@ export class Grid<T> implements GridApi<T> {
       rowRange,
       columnRange,
       totalWidth: this.virtualizer.getTotalWidth(visibleColumns, state.viewport.width),
-      totalHeight: this.virtualizer.getTotalHeight(state.data.length),
+      totalHeight: this.virtualizer.getTotalHeight(processedData.length),
     };
   }
 
@@ -83,6 +90,23 @@ export class Grid<T> implements GridApi<T> {
     const nextViewport = { ...this.getState().viewport, ...viewport };
     this.store.setState({ viewport: nextViewport });
     this.events.emit('viewportChange', nextViewport);
+  }
+
+  public setColumns(columns: GridState<T>['columns']): void {
+    this.assertActive();
+    this.store.setState({ columns });
+  }
+
+  public registerDataProcessor(processor: DataProcessor<T>): () => void {
+    this.assertActive();
+    this.dataProcessors.add(processor);
+    const unregister = () => this.dataProcessors.delete(processor);
+    return unregister;
+  }
+
+  public headerClick(columnId: string, multiSort = false): void {
+    this.assertActive();
+    this.events.emit('headerClick', { columnId, multiSort });
   }
 
   public subscribe(listener: () => void): () => void {
@@ -113,6 +137,7 @@ export class Grid<T> implements GridApi<T> {
     if (this.destroyed) return;
     this.cleanupPlugins.forEach((cleanup) => cleanup());
     this.cleanupPlugins.clear();
+    this.dataProcessors.clear();
     this.store.clear();
     this.events.clear();
     this.destroyed = true;
