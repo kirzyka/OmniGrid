@@ -5,7 +5,6 @@ import { useGrid } from './useGrid';
 export interface GridProps<T> extends GridOptions<T> {
   className?: string;
   style?: CSSProperties;
-  renderCell?: (value: unknown, row: T, column: ColumnDef<T>) => ReactNode;
 }
 
 function getCellValue<T>(row: T, column: ColumnDef<T>): unknown {
@@ -17,7 +16,6 @@ function getCellValue<T>(row: T, column: ColumnDef<T>): unknown {
 export function OmniGrid<T>({
   className,
   style,
-  renderCell,
   ...options
 }: GridProps<T>) {
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -111,7 +109,11 @@ export function OmniGrid<T>({
                     width: item.width,
                   }}
                 >
-                  {renderCell ? renderCell(value, row.data, item.column) : String(value ?? '')}
+                  {item.column.cellRenderer
+                    ? (item.column.cellRenderer({ value, data: row.data, column: item.column }) as ReactNode)
+                    : item.column.valueFormatter
+                      ? item.column.valueFormatter(value)
+                      : String(value ?? '')}
                 </div>
               );
             })}

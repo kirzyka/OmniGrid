@@ -2,6 +2,7 @@ export { EventBus } from './events';
 export { Grid } from './grid';
 export { Store } from './store';
 export type {
+    CellRendererParams,
     ColumnDef,
     GridApi,
     GridEvents,

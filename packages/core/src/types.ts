@@ -1,10 +1,18 @@
 export type RowId = string | number;
 
+export interface CellRendererParams<T> {
+  value: unknown;
+  data: T;
+  column: ColumnDef<T>;
+}
+
 export interface ColumnDef<T> {
   id: string;
   header?: string;
   field?: keyof T;
   accessor?: (row: T) => unknown;
+  cellRenderer?: (params: CellRendererParams<T>) => unknown;
+  valueFormatter?: (value: unknown) => string;
   width?: number;
   flex?: number;
   minWidth?: number;
