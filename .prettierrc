@@ -1,0 +1,23 @@
+{
+    "semi": true,
+    "trailingComma": "all",
+    "singleQuote": false,
+    "printWidth": 120,
+    "tabWidth": 4,
+    "useTabs": false,
+    "jsxSingleQuote": false,
+    "bracketSpacing": true,
+    "bracketSameLine": false,
+    "arrowParens": "always",
+    "endOfLine": "lf",
+    "importOrder": [
+        "^react",
+        "^(?!@omnigrid/style/index\\.css$)(?!.*\\.(css|less|scss|sass)$)[^./]",
+        "^[./](?!.*\\.(css|less|scss|sass)$)",
+        "@omnigrid/style/index\\.css$",
+        "\\.(css|less|scss|sass)$"
+    ],
+    "importOrderSeparation": true,
+    "importOrderSortSpecifiers": true,
+    "plugins": ["@trivago/prettier-plugin-sort-imports"]
+}

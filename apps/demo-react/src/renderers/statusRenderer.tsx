@@ -1,4 +1,5 @@
 import type { CellRendererParams } from '@omnigrid/react';
+import { ReactNode } from 'react';
 import type { DemoRow, Status } from '../data/demoData';
 
 const STATUS_LABELS: Record<Status, string> = {
@@ -25,7 +26,7 @@ function resolveStatus(value: unknown): Status {
  * Кастомный рендерер ячейки «Статус».
  * Соответствует сигнатуре ColumnDef.cellRenderer и возвращает ReactNode.
  */
-export function statusRenderer({ value }: CellRendererParams<DemoRow>): unknown {
+export function StatusRenderer({ value }: CellRendererParams<DemoRow>): ReactNode {
   const status = resolveStatus(value);
   const color = STATUS_COLORS[status];
   const label = STATUS_LABELS[status];
