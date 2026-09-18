@@ -1,6 +1,6 @@
 import { type CSSProperties, type ReactNode, type UIEvent, useEffect, useRef, useState } from "react";
 
-import type { ColumnDef, GridOptions } from "@omnigrid/core";
+import type { CheckboxControl, ColumnDef, GridOptions, RowRenderParams, RowStyle } from "@omnigrid/core";
 
 import { useGrid } from "./useGrid";
 
@@ -13,6 +13,32 @@ function getCellValue<T>(row: T, column: ColumnDef<T>): unknown {
     if (column.accessor) return column.accessor(row);
     if (column.field) return row[column.field];
     return undefined;
+}
+
+function isCheckboxControl(value: unknown): value is CheckboxControl {
+    return typeof value === "object" && value !== null && (value as { type?: unknown }).type === "@omnigrid/checkbox";
+}
+
+function renderContent(value: unknown): ReactNode {
+    if (!isCheckboxControl(value)) return value as ReactNode;
+
+    return (
+        <input
+            type="checkbox"
+            checked={value.checked}
+            disabled={value.disabled}
+            aria-label={value.ariaLabel}
+            ref={(element) => {
+                if (element) element.indeterminate = value.indeterminate;
+            }}
+            onClick={(event) => event.stopPropagation()}
+            onChange={(event) => {
+                event.stopPropagation();
+                const nativeEvent = event.nativeEvent as MouseEvent;
+                value.onChange({ shiftKey: nativeEvent.shiftKey, ctrlKey: nativeEvent.ctrlKey });
+            }}
+        />
+    );
 }
 
 export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
@@ -89,7 +115,9 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
                                       : "none"
                             }
                             onClick={(event) =>
-                                grid.headerClick(item.column.id, event.shiftKey || event.ctrlKey || event.metaKey)
+                                item.column.stopHeaderClick
+                                    ? event.stopPropagation()
+                                    : grid.headerClick(item.column.id, event.shiftKey || event.ctrlKey || event.metaKey)
                             }
                             onKeyDown={(event) => {
                                 if (event.key === "Enter" || event.key === " ") grid.headerClick(item.column.id);
@@ -111,48 +139,103 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
                                 width: item.width,
                             }}
                         >
-                            <span className="omnigrid-header-label">{item.column.header ?? item.column.id}</span>
-                            <span className="omnigrid-header-tools">
-                                {item.column.sortState && (
-                                    <span className="omnigrid-sort-indicator" aria-hidden="true">
-                                        {item.column.sortState === "asc" ? "▲" : "▼"}
+                            {item.column.headerRenderer ? (
+                                renderContent(item.column.headerRenderer(item.column))
+                            ) : (
+                                <>
+                                    <span className="omnigrid-header-label">
+                                        {item.column.header ?? item.column.id}
                                     </span>
-                                )}
-                            </span>
+                                    <span className="omnigrid-header-tools">
+                                        {item.column.sortState && (
+                                            <span className="omnigrid-sort-indicator" aria-hidden="true">
+                                                {item.column.sortState === "asc" ? "▲" : "▼"}
+                                            </span>
+                                        )}
+                                    </span>
+                                </>
+                            )}
                         </div>
                     ))}
                 </div>
-                {viewportData.rows.map((row) => (
-                    <div key={row.id} role="row" style={{ display: "contents" }}>
-                        {viewportData.columns.map((item) => {
-                            const value = getCellValue(row.data, item.column);
-                            return (
-                                <div
-                                    key={`${row.id}:${item.column.id}`}
-                                    role="cell"
-                                    style={{
-                                        height: grid.getState().rowHeight,
-                                        left: item.offset,
-                                        overflow: "hidden",
-                                        position: "absolute",
-                                        top: row.offset + grid.getState().rowHeight,
-                                        width: item.width,
-                                    }}
-                                >
-                                    {item.column.cellRenderer
-                                        ? (item.column.cellRenderer({
-                                              value,
-                                              data: row.data,
-                                              column: item.column,
-                                          }) as ReactNode)
-                                        : item.column.valueFormatter
-                                          ? item.column.valueFormatter(value)
-                                          : String(value ?? "")}
-                                </div>
-                            );
-                        })}
-                    </div>
-                ))}
+                {viewportData.rows.map((row) => {
+                    const rowParams: RowRenderParams<T> = { id: row.id, index: row.index, data: row.data };
+                    const rowStyle = options.plugins?.reduce<RowStyle>(
+                        (style, plugin) => ({ ...style, ...plugin.getRowStyle?.(rowParams) }),
+                        {},
+                    );
+                    return (
+                        <div
+                            key={row.id}
+                            role="row"
+                            className="omnigrid-row"
+                            onMouseDown={(event) => {
+                                if (event.shiftKey) event.preventDefault();
+                            }}
+                            onClick={(event) =>
+                                grid.rowClick({
+                                    ...rowParams,
+                                    ctrlKey: event.ctrlKey || event.metaKey,
+                                    shiftKey: event.shiftKey,
+                                })
+                            }
+                            style={{
+                                height: grid.getState().rowHeight,
+                                left: 0,
+                                position: "absolute",
+                                top: row.offset + grid.getState().rowHeight,
+                                width: "100%",
+                                ...rowStyle,
+                            }}
+                        >
+                            {viewportData.columns.map((item) => {
+                                const value = getCellValue(row.data, item.column);
+                                return (
+                                    <div
+                                        key={`${row.id}:${item.column.id}`}
+                                        role="cell"
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            if (!item.column.stopRowClick) {
+                                                grid.rowClick({
+                                                    ...rowParams,
+                                                    ctrlKey: event.ctrlKey || event.metaKey,
+                                                    shiftKey: event.shiftKey,
+                                                });
+                                            }
+                                        }}
+                                        style={{
+                                            backgroundColor:
+                                                typeof rowStyle?.backgroundColor === "string"
+                                                    ? rowStyle.backgroundColor
+                                                    : undefined,
+                                            height: grid.getState().rowHeight,
+                                            left: item.offset,
+                                            overflow: "hidden",
+                                            position: "absolute",
+                                            top: 0,
+                                            width: item.width,
+                                        }}
+                                    >
+                                        {renderContent(
+                                            item.column.cellRenderer
+                                                ? item.column.cellRenderer({
+                                                      value,
+                                                      data: row.data,
+                                                      column: item.column,
+                                                      id: row.id,
+                                                      index: row.index,
+                                                  })
+                                                : item.column.valueFormatter
+                                                  ? item.column.valueFormatter(value)
+                                                  : String(value ?? ""),
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

@@ -4,7 +4,13 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
 const nextConfig: NextConfig = {
-    transpilePackages: ["@omnigrid/core", "@omnigrid/react", "@omnigrid/sorting-plugin", "@omnigrid/style"],
+    transpilePackages: [
+        "@omnigrid/core",
+        "@omnigrid/react",
+        "@omnigrid/selection-plugin",
+        "@omnigrid/sorting-plugin",
+        "@omnigrid/style",
+    ],
     webpack(config) {
         config.module.rules.push({
             resourceQuery: /raw/,
