@@ -8,7 +8,7 @@ import { SelectionPlugin } from "@omnigrid/selection-plugin";
 import { DEMO_COLUMNS } from "../../components/GridConfigs";
 import { type DemoRow, createDemoData } from "../../data/demoData";
 
-export function SelectionGridExample() {
+export function MultiSelectionGridExample() {
     const data = useMemo(createDemoData, []);
     const selectionPlugin = useMemo(
         () =>

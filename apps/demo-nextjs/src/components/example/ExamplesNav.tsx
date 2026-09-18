@@ -9,7 +9,7 @@ const EXAMPLES = [
     ["03", "Selection plugin", "/examples/react/selection"],
 ] as const;
 
-export function ReactExamplesNav() {
+export function ExamplesNav() {
     const pathname = usePathname();
 
     return (
@@ -21,7 +21,7 @@ export function ReactExamplesNav() {
             <nav className="grid gap-2 max-sm:flex max-sm:flex-wrap max-sm:gap-x-4.5" aria-label="React examples">
                 {EXAMPLES.map(([number, title, href]) => (
                     <Link
-                        className={`flex items-center gap-4 border-b border-transparent py-3 font-sans text-sm hover:text-mint ${pathname === href ? "border-slate text-mint" : ""}`}
+                        className={`flex items-center gap-4 border-b py-3 font-sans text-sm hover:text-mint ${pathname === href ? "border-slate text-mint" : "border-transparent"}`}
                         href={href}
                         key={href}
                     >

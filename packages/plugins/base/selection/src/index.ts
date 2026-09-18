@@ -63,8 +63,8 @@ export class SelectionPlugin<T> implements GridPlugin<T> {
         this.mode = options.mode ?? "single";
         this.checkboxOnly = options.checkboxOnly ?? false;
         this.replaceSelectionOnClick = options.replaceSelectionOnClick ?? false;
-        this.showRowCheckboxes = options.showRowCheckboxes ?? true;
-        this.showHeaderCheckbox = options.showHeaderCheckbox ?? true;
+        this.showRowCheckboxes = options.showRowCheckboxes ?? false;
+        this.showHeaderCheckbox = options.showHeaderCheckbox ?? false;
         this.isRowSelectable = options.isRowSelectable ?? (() => true);
         this.checkboxRenderer = options.checkboxRenderer ?? defaultCheckboxRenderer;
         this.selectionColumnId = options.selectionColumnId ?? CHECKBOX_COLUMN_DEFAULT_ID;
@@ -186,6 +186,10 @@ export class SelectionPlugin<T> implements GridPlugin<T> {
     private updateColumns(): void {
         if (!this.api) return;
         const columns = this.api.getState().columns.filter((column) => column.id !== this.selectionColumnId);
+        if (!this.showRowCheckboxes && !this.showHeaderCheckbox) {
+            this.api.setColumns(columns);
+            return;
+        }
         const selectionColumn: ColumnDef<T> = {
             id: this.selectionColumnId,
             header: "",
