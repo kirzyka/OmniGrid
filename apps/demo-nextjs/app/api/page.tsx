@@ -7,7 +7,7 @@ const API_ITEMS = [
 
 export default function ApiPage() {
     return (
-        <div className="px-5 py-[48px] sm:px-[52px] sm:py-[70px] sm:pb-[100px]">
+        <div>
             <p className="mb-5 font-sans text-[11px] font-bold uppercase tracking-[.12em] text-mint">
                 Core reference / v0.1
             </p>

@@ -10,6 +10,7 @@ export interface ExampleSource {
 }
 
 interface ExampleShellProps {
+    id?: string;
     title: string;
     description: string;
     sources: ExampleSource[];
@@ -23,7 +24,7 @@ function getLanguage(label: string): string {
     return "tsx";
 }
 
-export function ExampleShell({ title, description, sources, children }: ExampleShellProps) {
+export function ExampleShell({ id, title, description, sources, children }: ExampleShellProps) {
     sources = sources.map((s: ExampleSource) => ({ ...s, code: s.code.replace('"use client";', "").trim() }));
 
     const [activeTab, setActiveTab] = useState<"preview" | "code">("preview");
@@ -38,7 +39,7 @@ export function ExampleShell({ title, description, sources, children }: ExampleS
     };
 
     return (
-        <section className="p-5 pb-10">
+        <section id={id} className="scroll-mt-8 p-5 pb-10">
             <h2 className="text-[clamp(30px,4vw,52px)] font-normal leading-none tracking-[-.045em]">{title}</h2>
             <p className="my-5.5 max-w-170 font-sans text-sm leading-[1.6]">{description}</p>
             <div className="border border-slate bg-paper">
