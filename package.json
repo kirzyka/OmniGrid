@@ -1,26 +1,26 @@
 {
-  "name": "omnigrid",
-  "private": false,
-  "scripts": {
-    "build": "npx turbo run build",
-    "build:library": "npm run build:core && npm run build:react && npm run build:style",
-    "build:core": "npm --workspace @omnigrid/core run build",
-    "build:react": "npm --workspace @omnigrid/react run build",
-    "build:style": "npm --workspace @omnigrid/style run build",
-    "dev": "turbo run dev --parallel",
-    "test": "turbo run test",
-    "lint": "turbo run lint"
-  },
-  "workspaces": [
-    "apps/*",
-    "packages/*",
-    "plugins/base/*",
-    "plugins/pro/*"
-  ],
-  "devDependencies": {
-    "typescript": "^5.0.0"
-  },
-  "dependencies": {
-    "@trivago/prettier-plugin-sort-imports": "^6.0.2"
-  }
+    "name": "omnigrid",
+    "private": false,
+    "scripts": {
+        "build": "npx turbo run build",
+        "build:library": "npm run build:core && npm run build:react && npm run build:style",
+        "build:core": "npm --workspace @omnigrid/core run build",
+        "build:react": "npm --workspace @omnigrid/react run build",
+        "build:style": "npm --workspace @omnigrid/style run build",
+        "dev": "turbo run dev --parallel",
+        "test": "turbo run test",
+        "lint": "turbo run lint"
+    },
+    "workspaces": [
+        "apps/*",
+        "packages/*",
+        "packages/plugins/base/*",
+        "packages/plugins/pro/*"
+    ],
+    "devDependencies": {
+        "typescript": "^5.0.0"
+    },
+    "dependencies": {
+        "@trivago/prettier-plugin-sort-imports": "^6.0.2"
+    }
 }
