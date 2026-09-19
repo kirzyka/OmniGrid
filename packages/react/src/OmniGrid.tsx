@@ -1,6 +1,6 @@
 import { type CSSProperties, type ReactNode, type UIEvent, useEffect, useRef, useState } from "react";
 
-import type { CheckboxControl, ColumnDef, GridOptions, RowRenderParams, RowStyle } from "@omnigrid/core";
+import type { CellAlign, CheckboxControl, ColumnDef, GridOptions, RowRenderParams, RowStyle } from "@omnigrid/core";
 
 import { useGrid } from "./useGrid";
 
@@ -40,6 +40,12 @@ function renderContent(value: unknown): ReactNode {
         />
     );
 }
+
+const ALIGN_TO_JUSTIFY: Record<CellAlign, string> = {
+    left: "flex-start",
+    center: "center",
+    right: "flex-end",
+};
 
 export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
     const viewportRef = useRef<HTMLDivElement>(null);
@@ -197,14 +203,13 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
                                             }
                                         }}
                                         style={{
-                                            display: "block",
                                             backgroundColor: typeof rowStyle?.backgroundColor === "string" ? rowStyle.backgroundColor : undefined,
                                             height: grid.getState().rowHeight,
                                             left: item.offset,
                                             overflow: "hidden",
                                             position: "absolute",
                                             top: 0,
-                                            textAlign: item.column.align ?? "left",
+                                            justifyContent: ALIGN_TO_JUSTIFY[item.column.align ?? "left"],
                                             width: item.width,
                                         }}
                                     >
