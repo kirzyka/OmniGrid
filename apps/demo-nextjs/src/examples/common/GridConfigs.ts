@@ -1,7 +1,6 @@
+import type { DemoRow } from "@/src/data/demoData";
+import { StatusRenderer } from "@/src/examples/common/renderers/StatusRenderer";
 import type { ColumnDef } from "@omnigrid/react";
-
-import type { DemoRow } from "../data/demoData";
-import { StatusRenderer } from "../renderers/StatusRenderer";
 
 export const DEMO_COLUMNS: ColumnDef<DemoRow>[] = [
     { id: "id", field: "id", header: "ID", width: 55 },

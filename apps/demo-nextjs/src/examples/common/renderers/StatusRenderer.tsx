@@ -1,8 +1,7 @@
 import { ReactNode } from "react";
 
+import type { DemoRow, Status } from "@/src/data/demoData";
 import type { CellRendererParams } from "@omnigrid/react";
-
-import type { DemoRow, Status } from "../data/demoData";
 
 const STATUS_LABELS: Record<Status, string> = {
     active: "Active",

@@ -1,15 +1,15 @@
 "use client";
 
-import gridConfigSource from "../../../../../src/components/GridConfigs.ts?raw";
-import { ExampleShell } from "../../../../../src/components/example/ExampleShell";
-import { CheckboxSelectionGridExample } from "../../../../../src/examples/selection/CheckboxSelectionGridExample";
-import checkboxSelectionGridExampleSrc from "../../../../../src/examples/selection/CheckboxSelectionGridExample.tsx?raw";
-import { MultiSelectionGridExample } from "../../../../../src/examples/selection/MultiSelectionGridExample";
-import multiSelectionGridExampleSrc from "../../../../../src/examples/selection/MultiSelectionGridExample.tsx?raw";
-import { SingleSelectionGridExample } from "../../../../../src/examples/selection/SingleSelectionGridExample";
-import singleSelectionGridExampleSrc from "../../../../../src/examples/selection/SingleSelectionGridExample?raw";
-import { UnselectableRowsExample } from "../../../../../src/examples/selection/UnselectableRowsExample";
-import unselectableRowsExampleSrc from "../../../../../src/examples/selection/UnselectableRowsExample.tsx?raw";
+import { ExampleShell } from "@/src/components/ui/example/ExampleShell";
+import gridConfigSource from "@/src/examples/common/GridConfigs.ts?raw";
+import { CheckboxSelectionGridExample } from "@/src/examples/plugins/base/selection/CheckboxSelectionGridExample";
+import checkboxSelectionGridExampleSrc from "@/src/examples/plugins/base/selection/CheckboxSelectionGridExample.tsx?raw";
+import { MultiSelectionGridExample } from "@/src/examples/plugins/base/selection/MultiSelectionGridExample";
+import multiSelectionGridExampleSrc from "@/src/examples/plugins/base/selection/MultiSelectionGridExample.tsx?raw";
+import { SingleSelectionGridExample } from "@/src/examples/plugins/base/selection/SingleSelectionGridExample";
+import singleSelectionGridExampleSrc from "@/src/examples/plugins/base/selection/SingleSelectionGridExample?raw";
+import { UnselectableRowsExample } from "@/src/examples/plugins/base/selection/UnselectableRowsExample";
+import unselectableRowsExampleSrc from "@/src/examples/plugins/base/selection/UnselectableRowsExample.tsx?raw";
 
 export default function SelectionExamplePage() {
     return (

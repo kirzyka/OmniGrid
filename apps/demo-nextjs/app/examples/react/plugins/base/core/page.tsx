@@ -1,10 +1,10 @@
 "use client";
 
-import { ExampleShell } from "../../../../../src/components/example/ExampleShell";
-import { CoreGridExample } from "../../../../../src/examples/core-grid/CoreGridExample";
-import exampleSource from "../../../../../src/examples/core-grid/CoreGridExample.tsx?raw";
-import gridConfigSource from "../../../../../src/components/GridConfigs.ts?raw";
-import rendererSource from "../../../../../src/renderers/StatusRenderer.tsx?raw";
+import { ExampleShell } from "@/src/components/ui/example/ExampleShell";
+import gridConfigSource from "@/src/examples/common/GridConfigs.ts?raw";
+import rendererSource from "@/src/examples/common/renderers/StatusRenderer.tsx?raw";
+import { CoreGridExample } from "@/src/examples/core-grid/CoreGridExample";
+import exampleSource from "@/src/examples/core-grid/CoreGridExample.tsx?raw";
 
 export default function CoreGridExamplePage() {
     return (

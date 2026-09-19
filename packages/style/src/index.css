@@ -39,6 +39,14 @@ body {
     background: #eef5ff !important;
 }
 
+.omnigrid-no-row-hover [role="cell"]:hover {
+    background: unset;
+}
+
+.omnigrid-no-row-hover .omnigrid-row:hover [role="cell"] {
+    background: unset !important;
+}
+
 .omnigrid-row {
     user-select: none;
 }

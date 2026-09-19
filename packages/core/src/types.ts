@@ -58,6 +58,7 @@ export interface GridOptions<T> {
     rowHeight?: number;
     rowOverscan?: number;
     columnOverscan?: number;
+    suppressRowHoverHighlight?: boolean;
     plugins?: GridPlugin<T>[];
 }
 

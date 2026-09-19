@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
-import { SiteHeader } from "../../src/components/SiteHeader";
 import { APINav } from "../../src/components/api/APINav";
+import { SiteHeader } from "../../src/components/ui/SiteHeader";
 
 export default function ApiLayout({ children }: { children: ReactNode }) {
     return (

@@ -45,6 +45,10 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
     const viewportRef = useRef<HTMLDivElement>(null);
     const [isMeasured, setIsMeasured] = useState(false);
     const { grid, viewportData } = useGrid(options);
+    const suppressRowHoverHighlight = options.suppressRowHoverHighlight ?? false;
+    const viewportClassName = suppressRowHoverHighlight
+        ? [className, "omnigrid-no-row-hover"].filter(Boolean).join(" ")
+        : className;
 
     useEffect(() => {
         const element = viewportRef.current;
@@ -71,14 +75,18 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
 
     if (!isMeasured) {
         return (
-            <div ref={viewportRef} className={className} style={{ overflow: "auto", position: "relative", ...style }} />
+            <div
+                ref={viewportRef}
+                className={viewportClassName}
+                style={{ overflow: "auto", position: "relative", ...style }}
+            />
         );
     }
 
     return (
         <div
             ref={viewportRef}
-            className={className}
+            className={viewportClassName}
             onScroll={handleScroll}
             style={{ background: "#ffffff", overflow: "auto", position: "relative", ...style }}
         >

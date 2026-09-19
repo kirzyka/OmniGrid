@@ -1,9 +1,9 @@
 "use client";
 
-import { ExampleShell } from "../../../../../src/components/example/ExampleShell";
-import { SortingGridExample } from "../../../../../src/examples/sorting/SortingGridExample";
-import gridConfigSource from "../../../../../src/components/GridConfigs.ts?raw";
-import exampleSource from "../../../../../src/examples/sorting/SortingGridExample.tsx?raw";
+import { ExampleShell } from "@/src/components/ui/example/ExampleShell";
+import gridConfigSource from "@/src/examples/common/GridConfigs.ts?raw";
+import { SortingGridExample } from "@/src/examples/plugins/base/sorting/SortingGridExample";
+import exampleSource from "@/src/examples/plugins/base/sorting/SortingGridExample.tsx?raw";
 
 export default function SortingExamplePage() {
     return (

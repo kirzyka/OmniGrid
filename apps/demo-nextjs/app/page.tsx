@@ -2,11 +2,10 @@
 
 import { useMemo } from "react";
 
+import { SiteHeader } from "@/src/components/ui/SiteHeader";
+import { createDemoData } from "@/src/data/demoData";
+import { DEMO_COLUMNS } from "@/src/examples/common/GridConfigs";
 import { OmniGrid } from "@omnigrid/react";
-
-import { DEMO_COLUMNS } from "../src/components/GridConfigs";
-import { SiteHeader } from "../src/components/SiteHeader";
-import { createDemoData } from "../src/data/demoData";
 
 export default function HomePage() {
     const data = useMemo(createDemoData, []);

@@ -27,20 +27,32 @@ const NAV_GROUPS: NavGroup[] = [
         items: [{ label: "Quick start", href: "/examples/quick-start" }],
     },
     {
+        label: "Columns",
+        items: [],
+    },
+    {
+        label: "Rows",
+        items: [{ label: "No row hover", href: "/examples/react/rows/no-hover" }],
+    },
+    {
+        label: "Cells",
+        items: [],
+    },
+    {
         label: "Plugins",
         items: [
             {
                 label: "Base",
-                href: "/examples/react/base",
+                href: "/examples/react/plugins/base",
                 children: [
-                    { label: "Base case", href: "/examples/react/base/core" },
-                    { label: "Sorting", href: "/examples/react/base/sorting" },
-                    { label: "Selection", href: "/examples/react/base/selection" },
+                    { label: "Base case", href: "/examples/react/plugins/base/core" },
+                    { label: "Sorting", href: "/examples/react/plugins/base/sorting" },
+                    { label: "Selection", href: "/examples/react/plugins/base/selection" },
                 ],
             },
             {
                 label: "Pro",
-                href: "/examples/react/pro",
+                href: "/examples/react/plugins/pro",
                 children: [],
             },
         ],
