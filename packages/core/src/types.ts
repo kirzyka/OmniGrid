@@ -1,5 +1,6 @@
 export type RowId = string | number;
 export type SortDirection = "asc" | "desc";
+export type CellAlign = "left" | "center" | "right";
 export type DataProcessor<T> = (data: T[]) => T[];
 
 export interface CellRendererParams<T> {
@@ -35,6 +36,7 @@ export interface CheckboxControl extends CheckboxRenderParams {
 export interface ColumnDef<T> {
     id: string;
     header?: string;
+    align?: CellAlign;
     field?: keyof T;
     accessor?: (row: T) => unknown;
     cellRenderer?: (params: CellRendererParams<T>) => unknown;

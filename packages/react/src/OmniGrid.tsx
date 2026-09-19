@@ -45,10 +45,11 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
     const viewportRef = useRef<HTMLDivElement>(null);
     const [isMeasured, setIsMeasured] = useState(false);
     const { grid, viewportData } = useGrid(options);
+    const autoHeight = style?.height === undefined;
+    const measuredHeight = viewportData.totalHeight + grid.getState().rowHeight;
+    const viewportStyle = { ...style, height: autoHeight ? measuredHeight : style?.height };
     const suppressRowHoverHighlight = options.suppressRowHoverHighlight ?? false;
-    const viewportClassName = suppressRowHoverHighlight
-        ? [className, "omnigrid-no-row-hover"].filter(Boolean).join(" ")
-        : className;
+    const viewportClassName = suppressRowHoverHighlight ? [className, "omnigrid-no-row-hover"].filter(Boolean).join(" ") : className;
 
     useEffect(() => {
         const element = viewportRef.current;
@@ -74,13 +75,7 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
     };
 
     if (!isMeasured) {
-        return (
-            <div
-                ref={viewportRef}
-                className={viewportClassName}
-                style={{ overflow: "auto", position: "relative", ...style }}
-            />
-        );
+        return <div ref={viewportRef} className={viewportClassName} style={{ overflow: "auto", position: "relative", ...viewportStyle }} />;
     }
 
     return (
@@ -88,7 +83,7 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
             ref={viewportRef}
             className={viewportClassName}
             onScroll={handleScroll}
-            style={{ background: "#ffffff", overflow: "auto", position: "relative", ...style }}
+            style={{ background: "#ffffff", overflow: "auto", position: "relative", ...viewportStyle }}
         >
             <div
                 style={{
@@ -115,13 +110,7 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
                             className="omnigrid-header-cell"
                             data-sort={item.column.sortState}
                             data-sortable={item.column.sortable === true ? "true" : undefined}
-                            aria-sort={
-                                item.column.sortState === "asc"
-                                    ? "ascending"
-                                    : item.column.sortState === "desc"
-                                      ? "descending"
-                                      : "none"
-                            }
+                            aria-sort={item.column.sortState === "asc" ? "ascending" : item.column.sortState === "desc" ? "descending" : "none"}
                             onClick={(event) =>
                                 item.column.stopHeaderClick
                                     ? event.stopPropagation()
@@ -151,9 +140,7 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
                                 renderContent(item.column.headerRenderer(item.column))
                             ) : (
                                 <>
-                                    <span className="omnigrid-header-label">
-                                        {item.column.header ?? item.column.id}
-                                    </span>
+                                    <span className="omnigrid-header-label">{item.column.header ?? item.column.id}</span>
                                     <span className="omnigrid-header-tools">
                                         {item.column.sortState && (
                                             <span className="omnigrid-sort-indicator" aria-hidden="true">
@@ -168,10 +155,7 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
                 </div>
                 {viewportData.rows.map((row) => {
                     const rowParams: RowRenderParams<T> = { id: row.id, index: row.index, data: row.data };
-                    const rowStyle = options.plugins?.reduce<RowStyle>(
-                        (style, plugin) => ({ ...style, ...plugin.getRowStyle?.(rowParams) }),
-                        {},
-                    );
+                    const rowStyle = options.plugins?.reduce<RowStyle>((style, plugin) => ({ ...style, ...plugin.getRowStyle?.(rowParams) }), {});
                     return (
                         <div
                             key={row.id}
@@ -213,15 +197,14 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
                                             }
                                         }}
                                         style={{
-                                            backgroundColor:
-                                                typeof rowStyle?.backgroundColor === "string"
-                                                    ? rowStyle.backgroundColor
-                                                    : undefined,
+                                            display: "block",
+                                            backgroundColor: typeof rowStyle?.backgroundColor === "string" ? rowStyle.backgroundColor : undefined,
                                             height: grid.getState().rowHeight,
                                             left: item.offset,
                                             overflow: "hidden",
                                             position: "absolute",
                                             top: 0,
+                                            textAlign: item.column.align ?? "left",
                                             width: item.width,
                                         }}
                                     >
