@@ -85,7 +85,7 @@ export function QuickStartGuide() {
                         same setup also works with larger datasets and a fixed height when you need viewport virtualization.
                     </p>
                 </div>
-                <div className="border border-slate bg-paper">
+                <div className="border border-slate bg-paper dark:bg-paper-dark">
                     <div className="flex items-center justify-between border-b border-slate px-4 py-[13px] font-sans text-[11px] uppercase">
                         <span>
                             <i className="mr-[7px] inline-block size-[7px] rounded-full bg-mint" /> Live grid

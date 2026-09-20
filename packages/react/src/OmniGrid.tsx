@@ -10,7 +10,7 @@ export interface GridProps<T> extends GridOptions<T> {
 }
 
 function getCellValue<T>(row: T, column: ColumnDef<T>): unknown {
-    if (column.accessor) return column.accessor(row);
+    if (column.valueGetter) return column.valueGetter(row);
     if (column.field) return row[column.field];
     return undefined;
 }
@@ -55,7 +55,7 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
     const measuredHeight = viewportData.totalHeight + grid.getState().rowHeight;
     const viewportStyle = { ...style, height: autoHeight ? measuredHeight : style?.height };
     const suppressRowHoverHighlight = options.suppressRowHoverHighlight ?? false;
-    const viewportClassName = suppressRowHoverHighlight ? [className, "omnigrid-no-row-hover"].filter(Boolean).join(" ") : className;
+    const viewportClassName = ["omnigrid", className, suppressRowHoverHighlight ? "omnigrid-no-row-hover" : null].filter(Boolean).join(" ");
 
     useEffect(() => {
         const element = viewportRef.current;
@@ -89,7 +89,7 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
             ref={viewportRef}
             className={viewportClassName}
             onScroll={handleScroll}
-            style={{ background: "#ffffff", overflow: "auto", position: "relative", ...viewportStyle }}
+            style={{ overflow: "auto", position: "relative", ...viewportStyle }}
         >
             <div
                 style={{
@@ -100,8 +100,8 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
             >
                 <div
                     role="row"
+                    className="omnigrid-header-row"
                     style={{
-                        background: "#e9eef5",
                         height: grid.getState().rowHeight,
                         minWidth: viewportData.totalWidth,
                         position: "sticky",
@@ -128,8 +128,6 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
                             tabIndex={0}
                             style={{
                                 alignItems: "center",
-                                borderBottom: "1px solid #c5cfdd",
-                                borderRight: "1px solid #c5cfdd",
                                 display: "flex",
                                 fontWeight: 600,
                                 overflow: "hidden",

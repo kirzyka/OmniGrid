@@ -38,7 +38,7 @@ export interface ColumnDef<T> {
     header?: string;
     align?: CellAlign;
     field?: keyof T;
-    accessor?: (row: T) => unknown;
+    valueGetter?: (row: T) => unknown;
     cellRenderer?: (params: CellRendererParams<T>) => unknown;
     headerRenderer?: (column: ColumnDef<T>) => unknown;
     stopRowClick?: boolean;

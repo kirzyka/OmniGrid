@@ -9,35 +9,20 @@
     --color-paper: #ffffff;
     --font-display: "Roboto", sans-serif;
     --font-sans: "Roboto", sans-serif;
+
+    --color-mist-dark: #4a4f4f;
+    --color-slate-dark: #a0a0a0;
+    --color-ink-dark: #e8ebe9;
+    --color-mint-dark: #0ce8c8;
+    --color-paper-dark: #1a1d1e;
 }
+
+@custom-variant dark (&:where(.dark, .dark *));
 
 html {
     scroll-behavior: smooth;
 }
 body {
-    @apply bg-paper font-display text-ink;
+    @apply bg-paper font-display text-ink dark:bg-paper-dark dark:text-ink-dark;
     margin: 0;
-}
-/* OmniGrid's internal cell layout remains local to the grid renderer. */
-/*
-[role="cell"] {
-    @apply flex items-center whitespace-nowrap border-b border-r border-mist bg-paper px-3 text-ink;
-}
-[role="cell"]:hover {
-    @apply bg-mist;
-}
-[role="columnheader"] {
-    @apply !bg-mist !text-ink;
-}*/
-.omnigrid-sort-indicator {
-    @apply text-[10px];
-}
-.omnigrid-header-label {
-    @apply overflow-hidden text-ellipsis;
-}
-.omnigrid-header-tools {
-    @apply ml-auto flex shrink-0 items-center gap-1.5;
-}
-.omnigrid-header-cell[data-sortable="true"] {
-    @apply cursor-pointer;
 }

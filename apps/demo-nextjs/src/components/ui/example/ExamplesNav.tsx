@@ -125,8 +125,8 @@ export function ExamplesNav() {
                 <Link
                     href={child.href}
                     onClick={() => setHash(splitHash(child.href)[1])}
-                    className={`flex items-center border-l py-2 pl-4 font-sans text-[13px] hover:text-mint ${
-                        active ? "border-mint text-mint" : "border-slate/40 text-ink"
+                    className={`flex items-center border-l py-2 pl-4 font-sans text-[13px] hover:text-mint dark:hover:text-mint-dark ${
+                        active ? "border-mint text-mint dark:text-mint-dark" : "border-slate/40 text-ink dark:text-ink-dark dark:border-slate-dark/40"
                     }`}
                 >
                     {child.label}
@@ -146,8 +146,8 @@ export function ExamplesNav() {
                 <div className="flex items-center">
                     <Link
                         href={item.href}
-                        className={`flex min-w-0 flex-1 items-center gap-3  py-2.5 font-sans text-sm hover:text-mint ${
-                            active ? " text-mint" : ""
+                        className={`flex min-w-0 flex-1 items-center gap-3  py-2.5 font-sans text-sm hover:text-mint dark:hover:text-mint-dark ${
+                            active ? " text-mint dark:text-mint-dark" : ""
                         }`}
                     >
                         <strong className="text-[10px] font-normal text-mint">
@@ -161,7 +161,7 @@ export function ExamplesNav() {
                             aria-label={`${isOpen ? "Collapse" : "Expand"} ${item.label}`}
                             aria-expanded={isOpen}
                             onClick={() => toggleExpanded(item.label)}
-                            className="cursor-pointer border-b border-transparent p-2.5 font-sans text-xs text-slate hover:text-mint"
+                            className="cursor-pointer border-b border-transparent p-2.5 font-sans text-xs text-slate dark:text-slate-dark hover:text-mint dark:hover:text-mint-dark"
                         >
                             <span
                                 className={`inline-block transition-transform duration-150 ${
@@ -184,23 +184,23 @@ export function ExamplesNav() {
     };
 
     return (
-        <aside className="border-r border-slate px-8 py-15 max-md:border-b max-md:border-r-0 max-md:px-5 max-md:py-10">
-            <p className="mb-5 font-sans text-[11px] font-bold uppercase tracking-[.12em] text-mint">React adapter</p>
-            <h1 className="mb-13.75 text-[36px] font-normal leading-[.9] tracking-[-.045em] text-ink max-sm:mb-5.5 max-sm:text-5xl">
+        <aside className="border-r border-slate dark:border-slate-dark px-8 py-15 max-md:border-b max-md:border-r-0 max-md:px-5 max-md:py-10">
+            <p className="mb-5 font-sans text-[11px] font-bold uppercase tracking-[.12em] text-mint dark:text-mint-dark">React adapter</p>
+            <h1 className="mb-13.75 text-[36px] font-normal leading-[.9] tracking-[-.045em] text-ink dark:text-ink-dark max-sm:mb-5.5 max-sm:text-5xl">
                 Examples
             </h1>
             <nav aria-label="React examples">
                 {NAV_GROUPS.map((group) => (
                     <section key={group.label} className="mb-8">
-                        <h2 className="mb-1 font-sans text-[11px] font-bold uppercase tracking-[.12em] text-slate">
+                        <h2 className="mb-1 font-sans text-[11px] font-bold uppercase tracking-[.12em] text-slate dark:text-slate-dark">
                             {group.label}
                         </h2>
-                        <div className="mb-3 h-px w-full bg-slate/40" aria-hidden="true" />
+                        <div className="mb-3 h-px w-full bg-slate/40 dark:bg-slate-dark/40" aria-hidden="true" />
                         <ul className="grid gap-2">{group.items.map((item, index) => renderItem(item, index))}</ul>
                     </section>
                 ))}
             </nav>
-            <p className="mt-15 max-w-xs font-sans text-xs leading-[1.6] max-sm:mt-6">
+            <p className="mt-15 max-w-xs font-sans text-xs leading-[1.6] max-sm:mt-6 text-ink dark:text-ink-dark">
                 Every example pairs a working table with the smallest useful integration.
             </p>
         </aside>
