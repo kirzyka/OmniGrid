@@ -18,11 +18,7 @@ const HEALTH_STATUSES: MinionRow["healthStatus"][] = ["healthy", "partially-frog
 const VEHICLES = ["Tuned broomstick", "Saucer XL", "Borrowed comet", "Unlicensed moon buggy"];
 const PILOTS = ["Cthulhu Junior", "Zorp McSpeed", "The Late Arriver", "Professor Zoom"];
 const SECTORS = ["Andromeda, sector 4A", "Orion belt, lane 9", "Saturn rings, outer lane"];
-const EXCUSES = [
-    "Thought a light-year was a suggestion",
-    "The autopilot was emotionally unavailable",
-    "Was late for a wizard council",
-];
+const EXCUSES = ["Thought a light-year was a suggestion", "The autopilot was emotionally unavailable", "Was late for a wizard council"];
 
 function seeded(seed: number): number {
     const value = Math.sin(seed * 127.1 + 311.7) * 43758.5453123;
@@ -124,13 +120,6 @@ function createSuperweapon(): SuperweaponNode {
     };
 }
 
-export async function getDemoDataset(dataset: "minions", options?: { count?: number }): Promise<MinionRow[]>;
-export async function getDemoDataset(
-    dataset: "speedingTickets",
-    options?: SpeedingTicketQuery,
-): Promise<SpeedingTicketRow[]>;
-export async function getDemoDataset(dataset: "alchemy", options?: { count?: number }): Promise<AlchemyRow[]>;
-export async function getDemoDataset(dataset: "superweapon"): Promise<SuperweaponNode>;
 export async function getDemoDataset(dataset: DemoDataset, options: DatasetOptions = {}): Promise<DatasetResult> {
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
