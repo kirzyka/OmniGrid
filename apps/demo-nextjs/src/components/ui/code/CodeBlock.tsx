@@ -13,11 +13,19 @@ interface CodeBlockProps {
     source: CodeBlockSource;
 }
 
+const FOR_CUT: RegExp[] = [/"use client";\s?\n?/];
+
 export function CodeBlock({ source }: CodeBlockProps) {
     const [copied, setCopied] = useState(false);
 
+    FOR_CUT.forEach((p: RegExp) => {
+        source.code = source.code.replace(p, "");
+    });
+
+    const { code, language } = source;
+
     const copySource = async () => {
-        await navigator.clipboard.writeText(source.code);
+        await navigator.clipboard.writeText(code);
         setCopied(true);
         window.setTimeout(() => setCopied(false), 1600);
     };
@@ -32,7 +40,7 @@ export function CodeBlock({ source }: CodeBlockProps) {
                 {copied ? "Copied" : "Copy code"}
             </button>
             <SyntaxHighlighter
-                language={source.language || "tsx"}
+                language={language || "tsx"}
                 style={vscDarkPlus}
                 customStyle={{
                     margin: 0,
@@ -46,7 +54,7 @@ export function CodeBlock({ source }: CodeBlockProps) {
                     style: { fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" },
                 }}
             >
-                {source.code}
+                {code}
             </SyntaxHighlighter>
         </div>
     );

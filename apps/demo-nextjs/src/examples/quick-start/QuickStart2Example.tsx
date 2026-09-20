@@ -10,7 +10,7 @@ import { SortingPlugin } from "@omnigrid/sorting-plugin";
 
 import { quickStartColumnDefs } from "./quickStartColumnDefs";
 
-export function QuickStartGridExample() {
+export function QuickStart2Example() {
     const sortingPlugin = useMemo(() => new SortingPlugin<MinionRow>(), []);
     const selectionPlugin = useMemo(
         () =>
