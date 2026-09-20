@@ -8,13 +8,85 @@ export interface VirtualizerOptions {
 
 export class Virtualizer<T> {
   private readonly options: VirtualizerOptions;
+  private lastScrollTop: number | null = null;
+  private lastRowRange: Range | null = null;
+  private lastRowCount = 0;
+  private lastRowViewportHeight = 0;
 
   public constructor(options: VirtualizerOptions) {
     this.options = options;
   }
 
   public getRowRange(count: number, scrollTop: number, viewportHeight: number): Range {
-    return this.getRange(count, this.options.rowHeight, scrollTop, viewportHeight, this.options.rowOverscan);
+    if (count === 0) {
+      this.lastScrollTop = null;
+      this.lastRowRange = null;
+      this.lastRowCount = 0;
+      this.lastRowViewportHeight = 0;
+      return { start: 0, end: 0 };
+    }
+
+    const rowHeight = this.options.rowHeight;
+    const visibleStart = Math.floor(Math.max(0, scrollTop) / rowHeight);
+    const visibleEnd = Math.ceil((Math.max(0, scrollTop) + Math.max(0, viewportHeight)) / rowHeight);
+
+    // Гарантированный буфер: видимая страница + минимум полная страница сверху
+    // и снизу. Даже если кадр отрисован с коммитом кадр том назад (rAF-обновление
+    // окна), видимая область всё равно полностью покрыта реальными строками.
+    const visibleRows = Math.max(1, visibleEnd - visibleStart);
+    const overscan = Math.max(this.options.rowOverscan, visibleRows);
+    const windowed: Range = {
+      start: Math.max(0, visibleStart - overscan),
+      end: Math.min(count, visibleEnd + overscan),
+    };
+
+    // Тот же набор данных, позиция и размер окна: возвращаем ранее вычисленный
+    // диапазон (StrictMode double-render, повторные ререндеры).
+    if (
+      scrollTop === this.lastScrollTop &&
+      count === this.lastRowCount &&
+      viewportHeight === this.lastRowViewportHeight
+    ) {
+      return this.lastRowRange ?? windowed;
+    }
+
+    const previousTop = this.lastScrollTop;
+    this.lastScrollTop = scrollTop;
+    this.lastRowCount = count;
+    this.lastRowViewportHeight = viewportHeight;
+
+    if (previousTop === null) {
+      this.lastRowRange = windowed;
+      return windowed;
+    }
+
+    const prevVisibleStart = Math.floor(Math.max(0, previousTop) / rowHeight);
+    const prevVisibleEnd = Math.ceil((Math.max(0, previousTop) + Math.max(0, viewportHeight)) / rowHeight);
+
+    // Обычный скролл: окно с полностраничным буфером и так покрывает и старое,
+    // и новое положения (прыжок меньше суммы буферов).
+    const closeEnough =
+      visibleStart <= prevVisibleEnd + overscan &&
+      prevVisibleStart <= visibleEnd + overscan;
+    if (closeEnough) {
+      this.lastRowRange = windowed;
+      return windowed;
+    }
+
+    // Телепорт (прыжок больше буфера): сплошной «коридор» от старой позиции
+    // к новой, с ограничением размера, чтобы не плодить сотни DOM-узлов.
+    const corridorCap = visibleRows * 2 + this.options.rowOverscan * 2;
+    const corridorStart = Math.max(0, Math.min(prevVisibleStart, visibleStart) - overscan);
+    const corridorEnd = Math.min(count, Math.max(prevVisibleEnd, visibleEnd) + overscan);
+
+    if (corridorEnd - corridorStart > corridorCap) {
+      this.lastRowRange = windowed;
+      return windowed;
+    }
+
+    const corridor: Range = { start: corridorStart, end: corridorEnd };
+    this.lastRowRange = corridor;
+    return corridor;
   }
 
   public getColumnRange(

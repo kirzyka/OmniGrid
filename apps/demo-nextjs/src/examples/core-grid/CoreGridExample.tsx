@@ -22,7 +22,7 @@ export function CoreGridExample() {
     );
 
     useEffect(() => {
-        getDemoDataset("speedingTickets", { limit: 50 }).then((data: DatasetResult) => {
+        getDemoDataset("speedingTickets", { limit: 100 }).then((data: DatasetResult) => {
             setData(data as SpeedingTicketRow[]);
         });
     }, []);

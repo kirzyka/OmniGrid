@@ -20,13 +20,15 @@
     "build": "npx tsc -p tsconfig.json"
   },
   "devDependencies": {
-    "@types/react": "^19.0.0"
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0"
   },
   "dependencies": {
     "@omnigrid/core": "^0.1.0",
     "@omnigrid/style": "0.1.0"
   },
   "peerDependencies": {
-    "react": ">=18"
+    "react": ">=18",
+    "react-dom": ">=18"
   }
 }

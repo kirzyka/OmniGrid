@@ -97,7 +97,14 @@ export class Grid<T> implements GridApi<T> {
 
     public setViewport(viewport: Partial<ViewportState>): void {
         this.assertActive();
-        const nextViewport = { ...this.getState().viewport, ...viewport };
+        const current = this.getState().viewport;
+        const nextViewport = { ...current, ...viewport };
+        const isUnchanged =
+            nextViewport.width === current.width &&
+            nextViewport.height === current.height &&
+            nextViewport.scrollTop === current.scrollTop &&
+            nextViewport.scrollLeft === current.scrollLeft;
+        if (isUnchanged) return;
         this.store.setState({ viewport: nextViewport });
         this.events.emit("viewportChange", nextViewport);
     }

@@ -27,11 +27,6 @@ export function useGrid<T>(options: GridOptions<T>): UseGridResult<T> {
   if (!gridRef.current) gridRef.current = new Grid(options);
   const grid = gridRef.current;
 
-  // options (и options.data) — новые объекты на КАЖДОМ рендере родителя.
-  // Через ref эффект реагирует только на смену данных, а не на новый массив.
-  const dataRef = useRef(options.data);
-  dataRef.current = options.data;
-
   const subscribe = useCallback(
     (listener: () => void) => grid.subscribe(listener),
     [grid],
@@ -39,13 +34,19 @@ export function useGrid<T>(options: GridOptions<T>): UseGridResult<T> {
   const getSnapshot = useCallback(() => grid.getState(), [grid]);
   const state = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
+  // Синхронизируем данные в ядро при смене ссылки на массив (async-загрузка,
+  // пагинация, фильтры на стороне родителя). Без этого данные, подгруженные
+  // после монтирования, «застревают» в первом рендере и грид остаётся пустым.
   useEffect(() => {
-    // StrictMode: setup → cleanup → setup. Если grid уже уничтожен
-    // (destroy вызван даже вне этого хука), пропускаем синхронизацию
-    // вместо падения с «Grid has been destroyed».
     if (grid.isDestroyed()) return;
-    grid.setData(dataRef.current ?? []);
-  }, [grid]);
+    grid.setData(options.data ?? []);
+  }, [grid, options.data]);
+
+  // То же для колонок: адаптер обязан отражать изменения props.
+  useEffect(() => {
+    if (grid.isDestroyed()) return;
+    grid.setColumns(options.columns);
+  }, [grid, options.columns]);
 
   return {
     grid,

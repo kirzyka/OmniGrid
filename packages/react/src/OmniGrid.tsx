@@ -1,5 +1,7 @@
 import { type CSSProperties, type ReactNode, type UIEvent, useEffect, useRef, useState } from "react";
 
+import { flushSync } from "react-dom";
+
 import type { CellAlign, CheckboxControl, ColumnDef, GridOptions, RowRenderParams, RowStyle } from "@omnigrid/core";
 
 import { useGrid } from "./useGrid";
@@ -51,11 +53,17 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
     const viewportRef = useRef<HTMLDivElement>(null);
     const [isMeasured, setIsMeasured] = useState(false);
     const { grid, viewportData } = useGrid(options);
+    // Последняя позиция скролла и id запланированного кадра. Один коммит на
+    // кадр (rAF) вместо рендера на каждое событие — иначе main-thread
+    // захлёбывается синхронными рендерами и браузер визуально «убегает»
+    // вперёд, показывая пустоту за пределами закоммиченного окна.
+    const scrollFrameRef = useRef<{ id: number; top: number; left: number }>({ id: 0, top: 0, left: 0 });
     const autoHeight = style?.height === undefined;
     const measuredHeight = viewportData.totalHeight + grid.getState().rowHeight;
     const viewportStyle = { ...style, height: autoHeight ? measuredHeight : style?.height };
     const suppressRowHoverHighlight = options.suppressRowHoverHighlight ?? false;
     const viewportClassName = ["omnigrid", className, suppressRowHoverHighlight ? "omnigrid-no-row-hover" : null].filter(Boolean).join(" ");
+    const rowHeight = grid.getState().rowHeight;
 
     useEffect(() => {
         const element = viewportRef.current;
@@ -77,8 +85,26 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
 
     const handleScroll = (event: UIEvent<HTMLDivElement>) => {
         const element = event.currentTarget;
-        grid.setViewport({ scrollTop: element.scrollTop, scrollLeft: element.scrollLeft });
+        const frame = scrollFrameRef.current;
+        frame.top = element.scrollTop;
+        frame.left = element.scrollLeft;
+        if (frame.id) return;
+        // Коммитим не чаще одного раза за кадр, непосредственно перед
+        // отрисовкой. Потери кадра из-за задержки коммита закрыты
+        // полностраничным буфером в виртуализаторе.
+        frame.id = window.requestAnimationFrame(() => {
+            frame.id = 0;
+            flushSync(() => {
+                grid.setViewport({ scrollTop: frame.top, scrollLeft: frame.left });
+            });
+        });
     };
+
+    useEffect(() => {
+        return () => {
+            if (scrollFrameRef.current.id) cancelAnimationFrame(scrollFrameRef.current.id);
+        };
+    }, []);
 
     if (!isMeasured) {
         return <div ref={viewportRef} className={viewportClassName} style={{ overflow: "auto", position: "relative", ...viewportStyle }} />;
@@ -93,7 +119,7 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
         >
             <div
                 style={{
-                    height: viewportData.totalHeight + grid.getState().rowHeight,
+                    height: viewportData.totalHeight + rowHeight,
                     minWidth: viewportData.totalWidth,
                     position: "relative",
                 }}
@@ -102,7 +128,7 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
                     role="row"
                     className="omnigrid-header-row"
                     style={{
-                        height: grid.getState().rowHeight,
+                        height: rowHeight,
                         minWidth: viewportData.totalWidth,
                         position: "sticky",
                         top: 0,
@@ -157,12 +183,14 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
                         </div>
                     ))}
                 </div>
-                {viewportData.rows.map((row) => {
+                {Array.from({ length: viewportData.rowRange.end - viewportData.rowRange.start }, (_, slot) => {
+                    const row = viewportData.rows[slot];
                     const rowParams: RowRenderParams<T> = { id: row.id, index: row.index, data: row.data };
                     const rowStyle = options.plugins?.reduce<RowStyle>((style, plugin) => ({ ...style, ...plugin.getRowStyle?.(rowParams) }), {});
+
                     return (
                         <div
-                            key={row.id}
+                            key={slot}
                             role="row"
                             className="omnigrid-row"
                             onMouseDown={(event) => {
@@ -176,10 +204,16 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
                                 })
                             }
                             style={{
-                                height: grid.getState().rowHeight,
+                                height: rowHeight,
                                 left: 0,
                                 position: "absolute",
-                                top: row.offset + grid.getState().rowHeight,
+                                top: 0,
+                                // Стабильные слоты переиспользуются при скролле: узел
+                                // строки не пересоздаётся, а только сдвигается
+                                // transform'ом. Без will-change браузер реже выносит
+                                // строки в отдельные композитные слои и скролл не
+                                // обгоняет коммиты на десятки узлов.
+                                transform: `translate3d(0, ${(viewportData.rowRange.start + slot) * rowHeight + rowHeight}px, 0)`,
                                 width: "100%",
                                 ...rowStyle,
                             }}
@@ -188,7 +222,7 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
                                 const value = getCellValue(row.data, item.column);
                                 return (
                                     <div
-                                        key={`${row.id}:${item.column.id}`}
+                                        key={`${slot}:${item.column.id}`}
                                         role="cell"
                                         onClick={(event) => {
                                             event.stopPropagation();
@@ -202,7 +236,7 @@ export function OmniGrid<T>({ className, style, ...options }: GridProps<T>) {
                                         }}
                                         style={{
                                             backgroundColor: typeof rowStyle?.backgroundColor === "string" ? rowStyle.backgroundColor : undefined,
-                                            height: grid.getState().rowHeight,
+                                            height: rowHeight,
                                             left: item.offset,
                                             overflow: "hidden",
                                             position: "absolute",
