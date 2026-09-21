@@ -21,6 +21,16 @@ export interface RowStyle {
     [property: string]: string | number | undefined;
 }
 
+/**
+ * Динамические правила назначения CSS-классов строкам.
+ *
+ * Ключ записи — имя CSS-класса, значение — предикат, принимающий параметры
+ * строки (`RowRenderParams`) и возвращающий `true`, когда класс должен быть
+ * применён к строке. Правила динамические: пересчитываются на каждый коммит
+ * viewport'а и применяются батчем ко всем видимым строкам сразу.
+ */
+export type RowClassRules<T> = Record<string, (params: RowRenderParams<T>) => boolean>;
+
 export interface CheckboxRenderParams {
     checked: boolean;
     indeterminate: boolean;
@@ -61,6 +71,11 @@ export interface GridOptions<T> {
     rowOverscan?: number;
     columnOverscan?: number;
     suppressRowHoverHighlight?: boolean;
+    rowStyle?: RowStyle;
+    getRowStyle?: (params: RowRenderParams<T>) => RowStyle | undefined;
+    rowClass?: string | ((params: RowRenderParams<T>) => string | undefined);
+    getRowClass?: (params: RowRenderParams<T>) => string | undefined;
+    rowClassRules?: RowClassRules<T>;
     plugins?: GridPlugin<T>[];
 }
 
@@ -131,11 +146,9 @@ export interface GridApi<T> {
     getRowId(row: T, index: number): RowId;
     setData(data: T[]): void;
     setViewport(viewport: Partial<ViewportState>): void;
+    refresh(): void;
     subscribe(listener: () => void): () => void;
-    on<EventName extends keyof GridEvents<T>>(
-        event: EventName,
-        listener: (payload: GridEvents<T>[EventName]) => void,
-    ): () => void;
+    on<EventName extends keyof GridEvents<T>>(event: EventName, listener: (payload: GridEvents<T>[EventName]) => void): () => void;
     registerPlugin(plugin: GridPlugin<T>): () => void;
     registerDataProcessor(processor: DataProcessor<T>): () => void;
     setColumns(columns: ColumnDef<T>[]): void;

@@ -1,0 +1,21 @@
+.demo-row-high-value {
+    background: #e8f5e9;
+}
+.demo-row-high-value [role="cell"] {
+    background: transparent;
+}
+.dark .demo-row-high-value {
+    background: #1f3326;
+}
+.demo-row-complainer {
+    background: #fdfcea;
+}
+.demo-row-complainer [role="cell"] {
+    background: transparent;
+}
+.dark .demo-row-complainer {
+    background: #403a25;
+}
+.demo-row-frogified {
+    opacity: 0.55;
+}

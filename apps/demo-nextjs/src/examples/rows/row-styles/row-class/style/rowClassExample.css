@@ -1,0 +1,9 @@
+.demo-row-class-sticky {
+    background: #eef5ff;
+}
+.demo-row-class-sticky [role="cell"] {
+    background: transparent;
+}
+.dark .demo-row-class-sticky {
+    background: #16283a;
+}

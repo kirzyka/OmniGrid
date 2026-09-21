@@ -1,7 +1,8 @@
 "use client";
 
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
+import { ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -12,7 +13,7 @@ export interface NavLink {
 
 export interface NavItem {
     label: string;
-    href: string;
+    href?: string;
     children?: NavLink[];
 }
 
@@ -32,7 +33,19 @@ const NAV_GROUPS: NavGroup[] = [
     },
     {
         label: "Rows",
-        items: [{ label: "No row hover", href: "/examples/react/rows/no-hover" }],
+        items: [
+            { label: "No row hover", href: "/examples/react/rows/no-hover" },
+            {
+                label: "Style",
+                children: [
+                    { label: "Row style", href: "/examples/react/rows/style#row-style" },
+                    { label: "Get row style", href: "/examples/react/rows/style#get-row-style" },
+                    { label: "Row class", href: "/examples/react/rows/style#row-class" },
+                    { label: "Get row class", href: "/examples/react/rows/style#get-row-class" },
+                    { label: "Row class rules", href: "/examples/react/rows/style#row-class-rules" },
+                ],
+            },
+        ],
     },
     {
         label: "Cells",
@@ -64,17 +77,25 @@ function splitHash(href: string): [path: string, hash: string] {
     return [path, hash];
 }
 
-function isActive(href: string, pathname: string, hash: string): boolean {
+function isActive(href: string | undefined, pathname: string, hash: string): boolean {
+    if (!href) return false;
     const [path, targetHash] = splitHash(href);
     return path === pathname && (targetHash === "" || targetHash === hash);
 }
 
 function isInSubtree(item: NavItem, pathname: string): boolean {
-    if (pathname === item.href) return true;
-    const base = item.href.replace(/\/$/, "");
-    if (pathname.startsWith(`${base}/`)) return true;
+    if (item.href && pathname === item.href) return true;
+    if (item.href) {
+        const base = item.href.replace(/\/$/, "");
+        if (pathname.startsWith(`${base}/`)) return true;
+    }
     const children = item.children ?? [];
     return children.some((child) => splitHash(child.href)[0] === pathname);
+}
+
+function getSectionIds(item: NavItem): string[] {
+    const children = item.children ?? [];
+    return children.map((child) => splitHash(child.href)[1]).filter(Boolean);
 }
 
 export function ExamplesNav() {
@@ -87,13 +108,45 @@ export function ExamplesNav() {
             .map((item) => item.label);
         return new Set(labels);
     });
+    const [activeAnchor, setActiveAnchor] = useState<string>("");
 
+    // Track hash changes
     useEffect(() => {
         const readHash = () => setHash(window.location.hash.replace(/^#/, ""));
         readHash();
         window.addEventListener("hashchange", readHash);
         return () => window.removeEventListener("hashchange", readHash);
     }, []);
+
+    // Track scroll position to highlight active anchor
+    const observerRef = useRef<IntersectionObserver | null>(null);
+
+    useEffect(() => {
+        const sectionIds = NAV_GROUPS.flatMap((group) => group.items).flatMap(getSectionIds);
+        if (sectionIds.length === 0) return;
+
+        observerRef.current = new IntersectionObserver(
+            (entries) => {
+                for (const entry of entries) {
+                    if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+                        setActiveAnchor(entry.target.id);
+                        break;
+                    }
+                }
+            },
+            {
+                rootMargin: "-20% 0px -70% 0px",
+                threshold: [0.1, 0.5, 0.9],
+            },
+        );
+
+        sectionIds.forEach((id) => {
+            const element = document.getElementById(id);
+            if (element) observerRef.current?.observe(element);
+        });
+
+        return () => observerRef.current?.disconnect();
+    }, [pathname]);
 
     // Auto-expand branches whose subtree contains the current route.
     useEffect(() => {
@@ -118,8 +171,20 @@ export function ExamplesNav() {
         });
     };
 
+    const isItemActive = (item: NavItem): boolean => {
+        if (item.href && isActive(item.href, pathname, hash)) return true;
+        if (item.children) {
+            return item.children.some((child) => isActive(child.href, pathname, hash) || (activeAnchor !== "" && splitHash(child.href)[1] === activeAnchor));
+        }
+        return false;
+    };
+
+    const isChildActive = (child: NavLink): boolean => {
+        return isActive(child.href, pathname, hash) || (activeAnchor !== "" && splitHash(child.href)[1] === activeAnchor);
+    };
+
     const renderChild = (child: NavLink): ReactNode => {
-        const active = isActive(child.href, pathname, hash);
+        const active = isChildActive(child);
         return (
             <li key={child.href}>
                 <Link
@@ -139,22 +204,27 @@ export function ExamplesNav() {
         const hasChildren = item.children !== undefined && item.children.length > 0;
         const children = item.children ?? [];
         const isOpen = hasChildren && expanded.has(item.label);
-        const active = isActive(item.href, pathname, hash);
+        const active = isItemActive(item);
 
         return (
             <li key={item.label}>
                 <div className="flex items-center">
-                    <Link
-                        href={item.href}
-                        className={`flex min-w-0 flex-1 items-center gap-3  py-2.5 font-sans text-sm hover:text-mint dark:hover:text-mint-dark ${
-                            active ? " text-mint dark:text-mint-dark" : ""
-                        }`}
-                    >
-                        <strong className="text-[10px] font-normal text-mint">
-                            {String(index + 1).padStart(2, "0")}
-                        </strong>
-                        <span className="truncate">{item.label}</span>
-                    </Link>
+                    {item.href ? (
+                        <Link
+                            href={item.href}
+                            className={`flex min-w-0 flex-1 items-center gap-3  py-2.5 font-sans text-sm hover:text-mint dark:hover:text-mint-dark ${
+                                active ? " text-mint dark:text-mint-dark" : ""
+                            }`}
+                        >
+                            <strong className="text-[10px] font-normal text-mint">{String(index + 1).padStart(2, "0")}</strong>
+                            <span className="truncate">{item.label}</span>
+                        </Link>
+                    ) : (
+                        <div className={`flex min-w-0 flex-1 items-center gap-3  py-2.5 font-sans text-sm ${active ? "text-mint dark:text-mint-dark" : ""}`}>
+                            <strong className="text-[10px] font-normal text-mint">{String(index + 1).padStart(2, "0")}</strong>
+                            <span className="truncate">{item.label}</span>
+                        </div>
+                    )}
                     {hasChildren && (
                         <button
                             type="button"
@@ -163,13 +233,8 @@ export function ExamplesNav() {
                             onClick={() => toggleExpanded(item.label)}
                             className="cursor-pointer border-b border-transparent p-2.5 font-sans text-xs text-slate dark:text-slate-dark hover:text-mint dark:hover:text-mint-dark"
                         >
-                            <span
-                                className={`inline-block transition-transform duration-150 ${
-                                    isOpen ? "rotate-90" : ""
-                                }`}
-                                aria-hidden="true"
-                            >
-                                ›
+                            <span className={`inline-block transition-transform duration-150`} aria-hidden="true">
+                                {isOpen ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                             </span>
                         </button>
                     )}
@@ -184,17 +249,11 @@ export function ExamplesNav() {
     };
 
     return (
-        <aside className="border-r border-slate dark:border-slate-dark px-8 py-15 max-md:border-b max-md:border-r-0 max-md:px-5 max-md:py-10">
-            <p className="mb-5 font-sans text-[11px] font-bold uppercase tracking-[.12em] text-mint dark:text-mint-dark">React adapter</p>
-            <h1 className="mb-13.75 text-[36px] font-normal leading-[.9] tracking-[-.045em] text-ink dark:text-ink-dark max-sm:mb-5.5 max-sm:text-5xl">
-                Examples
-            </h1>
+        <aside className="px-8 py-15 max-md:px-5 max-md:py-10">
             <nav aria-label="React examples">
                 {NAV_GROUPS.map((group) => (
                     <section key={group.label} className="mb-8">
-                        <h2 className="mb-1 font-sans text-[11px] font-bold uppercase tracking-[.12em] text-slate dark:text-slate-dark">
-                            {group.label}
-                        </h2>
+                        <h2 className="mb-1 font-sans text-[11px] font-bold uppercase tracking-[.12em] text-slate dark:text-slate-dark">{group.label}</h2>
                         <div className="mb-3 h-px w-full bg-slate/40 dark:bg-slate-dark/40" aria-hidden="true" />
                         <ul className="grid gap-2">{group.items.map((item, index) => renderItem(item, index))}</ul>
                     </section>

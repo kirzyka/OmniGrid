@@ -12,6 +12,10 @@
 * {
     box-sizing: border-box;
 }
+.omnigrid {
+    border-collapse: collapse;
+    border: 1px solid #d9e0ea;
+}
 
 [role="cell"] {
     align-items: center;

@@ -14,6 +14,7 @@ export type {
     GridPlugin,
     GridState,
     Range,
+    RowClassRules,
     RowClickEvent,
     RowHoverEvent,
     RowId,

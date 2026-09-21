@@ -109,6 +109,16 @@ export class Grid<T> implements GridApi<T> {
         this.events.emit("viewportChange", nextViewport);
     }
 
+    /**
+     * Перерисовывает текущий viewport: уведомляет подписчиков state store,
+     * чтобы адаптер заново отрендерил видимые строки и пересчитал динамические
+     * классы строк (rowClassRules) одним проходом — батчем.
+     */
+    public refresh(): void {
+        this.assertActive();
+        this.store.setState({});
+    }
+
     public setColumns(columns: GridState<T>["columns"]): void {
         this.assertActive();
         this.store.setState({ columns });

@@ -42,10 +42,10 @@ export function ExampleShell({ id, title, description, sources, children }: Exam
         <section id={id} className="scroll-mt-8 p-5 pb-10">
             <h2 className="text-[clamp(30px,4vw,52px)] font-normal leading-none tracking-[-.045em]">{title}</h2>
             <p className="my-5.5 max-w-170 font-sans text-sm leading-[1.6]">{description}</p>
-            <div className="border border-slate bg-paper">
+            <div className="border border-slate bg-paper  dark:bg-paper-dark">
                 <div className="flex gap-1 border-b border-slate px-3" role="tablist" aria-label={`${title} views`}>
                     <button
-                        className={`cursor-pointer border-b-2 bg-transparent px-3 pb-3 pt-3.5 font-sans text-xs ${activeTab === "preview" ? "border-mint text-mint" : "border-transparent text-ink"}`}
+                        className={`cursor-pointer border-b-2 bg-transparent px-3 pb-3 pt-3.5 font-sans text-xs ${activeTab === "preview" ? "border-mint text-mint" : "border-transparent text-ink dark:text-ink-dark"}`}
                         onClick={() => setActiveTab("preview")}
                         role="tab"
                         aria-selected={activeTab === "preview"}
@@ -53,7 +53,7 @@ export function ExampleShell({ id, title, description, sources, children }: Exam
                         Preview
                     </button>
                     <button
-                        className={`cursor-pointer border-b-2 bg-transparent px-3 pb-3 pt-3.5 font-sans text-xs ${activeTab === "code" ? "border-mint text-mint" : "border-transparent text-ink"}`}
+                        className={`cursor-pointer border-b-2 bg-transparent px-3 pb-3 pt-3.5 font-sans text-xs ${activeTab === "code" ? "border-mint text-mint" : "border-transparent text-ink dark:text-ink-dark"}`}
                         onClick={() => setActiveTab("code")}
                         role="tab"
                         aria-selected={activeTab === "code"}
@@ -65,11 +65,7 @@ export function ExampleShell({ id, title, description, sources, children }: Exam
                     <div className="h-105 sm:h-110">{children}</div>
                 ) : (
                     <div className="relative bg-[#111111]">
-                        <div
-                            className="flex gap-1 overflow-x-auto border-b border-white/15 px-3"
-                            role="tablist"
-                            aria-label="Example source files"
-                        >
+                        <div className="flex gap-1 overflow-x-auto border-b border-white/15 px-3" role="tablist" aria-label="Example source files">
                             {sources.map((item, index) => (
                                 <button
                                     className={`cursor-pointer shrink-0 border-b-2 bg-transparent px-3 pb-3 pt-3.5 font-sans text-xs ${activeSource === index ? "border-mint text-white" : "border-transparent text-white/70 hover:text-white"}`}
