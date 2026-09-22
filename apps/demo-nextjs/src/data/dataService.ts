@@ -125,11 +125,11 @@ export async function getDemoDataset(dataset: DemoDataset, options: DatasetOptio
 
     switch (dataset) {
         case "minions":
-            return createMinions(Math.max(1, options.count ?? 100));
+            return createMinions(options.count ?? 100);
         case "speedingTickets":
             return createSpeedingTickets(options);
         case "alchemy":
-            return createAlchemyRows(Math.max(1, options.count ?? 100));
+            return createAlchemyRows(options.count ?? 100);
         case "superweapon":
             return createSuperweapon();
     }

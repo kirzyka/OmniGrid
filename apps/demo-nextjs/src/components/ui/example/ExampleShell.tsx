@@ -2,7 +2,11 @@
 
 import { type ReactNode, useState } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { vs, vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+
+import { useTheme } from "next-themes";
+
+import { CopyButton } from "../button/CopyButton";
 
 export interface ExampleSource {
     label: string;
@@ -27,9 +31,9 @@ function getLanguage(label: string): string {
 export function ExampleShell({ id, title, description, sources, children }: ExampleShellProps) {
     sources = sources.map((s: ExampleSource) => ({ ...s, code: s.code.replace('"use client";', "").trim() }));
 
+    const { theme } = useTheme();
     const [activeTab, setActiveTab] = useState<"preview" | "code">("preview");
     const [activeSource, setActiveSource] = useState(0);
-    const [copied, setCopied] = useState(false);
     const source = sources[activeSource] ?? sources[0];
 
     const copySource = async () => {
@@ -64,15 +68,14 @@ export function ExampleShell({ id, title, description, sources, children }: Exam
                 {activeTab === "preview" ? (
                     <div className="h-105 sm:h-110">{children}</div>
                 ) : (
-                    <div className="relative bg-[#111111]">
+                    <div className="relative  bg-paper dark:bg-paper-dark">
                         <div className="flex gap-1 overflow-x-auto border-b border-white/15 px-3" role="tablist" aria-label="Example source files">
                             {sources.map((item, index) => (
                                 <button
-                                    className={`cursor-pointer shrink-0 border-b-2 bg-transparent px-3 pb-3 pt-3.5 font-sans text-xs ${activeSource === index ? "border-mint text-white" : "border-transparent text-white/70 hover:text-white"}`}
+                                    className={`cursor-pointer shrink-0 border-b-2 bg-transparent px-3 pb-3 pt-3.5 font-sans text-xs ${activeSource === index ? "border-mint  text-ink dark:text-ink-dark" : "border-transparent text-ink dark:text-ink-dark"}`}
                                     key={item.label}
                                     onClick={() => {
                                         setActiveSource(index);
-                                        setCopied(false);
                                     }}
                                     role="tab"
                                     aria-selected={activeSource === index}
@@ -81,22 +84,15 @@ export function ExampleShell({ id, title, description, sources, children }: Exam
                                 </button>
                             ))}
                         </div>
-                        <button
-                            className="absolute right-4 top-15 z-10 border border-white/40 bg-[#111111] px-3 py-2 font-sans text-xs text-white hover:border-mint hover:text-mint"
-                            onClick={copySource}
-                            type="button"
-                        >
-                            {copied ? "Copied" : "Copy code"}
-                        </button>
+                        <CopyButton text={source.code} />
                         <SyntaxHighlighter
                             language={getLanguage(source.label)}
-                            style={vscDarkPlus}
+                            style={theme === "dark" ? vscDarkPlus : vs}
                             customStyle={{
                                 margin: 0,
                                 minHeight: "420px",
                                 padding: "26px",
                                 paddingRight: "128px",
-                                background: "#111111",
                                 fontSize: "13px",
                                 lineHeight: 1.7,
                             }}
