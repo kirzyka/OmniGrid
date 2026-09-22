@@ -36,12 +36,6 @@ export function ExampleShell({ id, title, description, sources, children }: Exam
     const [activeSource, setActiveSource] = useState(0);
     const source = sources[activeSource] ?? sources[0];
 
-    const copySource = async () => {
-        await navigator.clipboard.writeText(source.code);
-        setCopied(true);
-        window.setTimeout(() => setCopied(false), 1600);
-    };
-
     return (
         <section id={id} className="scroll-mt-8 p-5 pb-10">
             <h2 className="text-[clamp(30px,4vw,52px)] font-normal leading-none tracking-[-.045em]">{title}</h2>

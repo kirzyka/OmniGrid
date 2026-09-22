@@ -1,130 +1,128 @@
-import type {
-    ColumnDef,
-    GridApi,
-    GridPlugin,
-    SortDirection,
-} from '@omnigrid/core';
+import type { ColumnDef, GridApi, GridPlugin, SortDirection } from "@omnigrid/core";
 
 export interface SortModelItem {
-  columnId: string;
-  direction: SortDirection;
+    columnId: string;
+    direction: SortDirection;
 }
 
 export interface SortingPluginOptions<T> {
-  compare?: (left: unknown, right: unknown, column: ColumnDef<T>) => number;
+    compare?: (left: unknown, right: unknown, column: ColumnDef<T>) => number;
 }
 
 function defaultCompare(left: unknown, right: unknown): number {
-  if (left == null && right == null) return 0;
-  if (left == null) return -1;
-  if (right == null) return 1;
-  if (typeof left === 'number' && typeof right === 'number') return left - right;
-  if (left instanceof Date && right instanceof Date) return left.getTime() - right.getTime();
+    if (left == null && right == null) return 0;
+    if (left == null) return -1;
+    if (right == null) return 1;
+    if (typeof left === "number" && typeof right === "number") return left - right;
+    if (left instanceof Date && right instanceof Date) return left.getTime() - right.getTime();
 
-  return String(left).localeCompare(String(right), undefined, {
-    numeric: true,
-    sensitivity: 'base',
-  });
+    return String(left).localeCompare(String(right), undefined, {
+        numeric: true,
+        sensitivity: "base",
+    });
 }
 
 export class SortingPlugin<T> implements GridPlugin<T> {
-  public readonly name = '@omnigrid/sorting-plugin';
-  private api?: GridApi<T>;
-  private sortModel: SortModelItem[] = [];
-  private unregisterProcessor?: () => void;
-  private unregisterHeaderClick?: () => void;
-  private readonly compare: (left: unknown, right: unknown, column: ColumnDef<T>) => number;
+    public readonly name = "@omnigrid/sorting-plugin";
+    private api?: GridApi<T>;
+    private sortModel: SortModelItem[] = [];
+    private unregisterProcessor?: () => void;
+    private unregisterHeaderClick?: () => void;
+    private readonly compare: (left: unknown, right: unknown, column: ColumnDef<T>) => number;
 
-  public constructor(options: SortingPluginOptions<T> = {}) {
-    this.compare = options.compare ?? ((left, right) => defaultCompare(left, right));
-  }
+    public constructor(options: SortingPluginOptions<T> = {}) {
+        this.compare = options.compare ?? ((left, right) => defaultCompare(left, right));
+    }
 
-  public register(api: GridApi<T>): () => void {
-    this.api = api;
-    this.unregisterProcessor = api.registerDataProcessor((data) => this.sortData(data));
-    this.unregisterHeaderClick = api.on('headerClick', ({ columnId, multiSort }) => {
-      this.toggle(columnId, multiSort);
-    });
-    this.updateColumnMetadata();
+    public register(api: GridApi<T>): () => void {
+        this.api = api;
+        this.unregisterProcessor = api.registerDataProcessor((data) => this.sortData(data));
+        this.unregisterHeaderClick = api.on("headerClick", ({ columnId, multiSort }) => {
+            this.toggle(columnId, multiSort);
+        });
+        this.initializeSortModel();
 
-    return () => {
-      this.unregisterProcessor?.();
-      this.unregisterHeaderClick?.();
-      this.unregisterProcessor = undefined;
-      this.unregisterHeaderClick = undefined;
-      this.api = undefined;
-    };
-  }
+        return () => {
+            this.unregisterProcessor?.();
+            this.unregisterHeaderClick?.();
+            this.unregisterProcessor = undefined;
+            this.unregisterHeaderClick = undefined;
+            this.api = undefined;
+        };
+    }
 
-  public getSortModel(): SortModelItem[] {
-    return this.sortModel.map((item) => ({ ...item }));
-  }
-
-  public setSortModel(sortModel: SortModelItem[]): void {
-    this.sortModel = sortModel.map((item) => ({ ...item }));
-    this.updateColumnMetadata();
-    this.api?.setData(this.api.getState().data);
-  }
-
-  public clearSort(): void {
-    this.setSortModel([]);
-  }
-
-  private toggle(columnId: string, multiSort: boolean): void {
-    const column = this.api?.getState().columns.find((item) => item.id === columnId);
-    if (!column || column.sortable === false) return;
-
-    const currentIndex = this.sortModel.findIndex((item) => item.columnId === columnId);
-    const current = currentIndex >= 0 ? this.sortModel[currentIndex].direction : undefined;
-    const next: SortDirection | undefined = current === undefined
-      ? 'asc'
-      : current === 'asc'
-        ? 'desc'
-        : undefined;
-    const nextModel = multiSort ? [...this.sortModel] : [];
-
-    if (currentIndex >= 0) nextModel.splice(multiSort ? currentIndex : 0, 1);
-    if (next) nextModel.push({ columnId, direction: next });
-    this.setSortModel(nextModel);
-  }
-
-  private sortData(data: T[]): T[] {
-    if (this.sortModel.length === 0 || !this.api) return data;
-    const columns = this.api.getState().columns;
-
-    return data
-      .map((value, index) => ({ value, index }))
-      .sort((left, right) => {
-        for (const sort of this.sortModel) {
-          const column = columns.find((item) => item.id === sort.columnId);
-          if (!column) continue;
-          const result = this.compare(
-            this.getValue(left.value, column),
-            this.getValue(right.value, column),
-            column,
-          );
-          if (result !== 0) return sort.direction === 'asc' ? result : -result;
+    private initializeSortModel(): void {
+        if (!this.api) return;
+        const columns = this.api.getState().columns;
+        const initialSort = columns.filter((column) => column.sortState !== undefined).map((column) => ({ columnId: column.id, direction: column.sortState! }));
+        if (initialSort.length > 0) {
+            this.sortModel = initialSort;
+            this.updateColumnMetadata();
+            this.api.setData(this.api.getState().data);
         }
-        return left.index - right.index;
-      })
-      .map(({ value }) => value);
-  }
+    }
 
-  private getValue(row: T, column: ColumnDef<T>): unknown {
-    if (column.accessor) return column.accessor(row);
-    if (column.field) return row[column.field];
-    return undefined;
-  }
+    public getSortModel(): SortModelItem[] {
+        return this.sortModel.map((item) => ({ ...item }));
+    }
 
-  private updateColumnMetadata(): void {
-    if (!this.api) return;
-    const model = new Map(this.sortModel.map((item) => [item.columnId, item.direction]));
-    this.api.setColumns(
-      this.api.getState().columns.map((column) => ({
-        ...column,
-        sortable: column.sortable === false ? false : true,
-        sortState: model.get(column.id),
-      })),
-    );
-  }
+    public setSortModel(sortModel: SortModelItem[]): void {
+        this.sortModel = sortModel.map((item) => ({ ...item }));
+        this.updateColumnMetadata();
+        this.api?.setData(this.api.getState().data);
+    }
+
+    public clearSort(): void {
+        this.setSortModel([]);
+    }
+
+    private toggle(columnId: string, multiSort: boolean): void {
+        const column = this.api?.getState().columns.find((item) => item.id === columnId);
+        if (!column || column.sortable === false) return;
+
+        const currentIndex = this.sortModel.findIndex((item) => item.columnId === columnId);
+        const current = currentIndex >= 0 ? this.sortModel[currentIndex].direction : undefined;
+        const next: SortDirection | undefined = current === undefined ? "asc" : current === "asc" ? "desc" : undefined;
+        const nextModel = multiSort ? [...this.sortModel] : [];
+
+        if (currentIndex >= 0) nextModel.splice(multiSort ? currentIndex : 0, 1);
+        if (next) nextModel.push({ columnId, direction: next });
+        this.setSortModel(nextModel);
+    }
+
+    private sortData(data: T[]): T[] {
+        if (this.sortModel.length === 0 || !this.api) return data;
+        const columns = this.api.getState().columns;
+
+        return data
+            .map((value, index) => ({ value, index }))
+            .sort((left, right) => {
+                for (const sort of this.sortModel) {
+                    const column = columns.find((item) => item.id === sort.columnId);
+                    if (!column) continue;
+                    const result = this.compare(this.getValue(left.value, column), this.getValue(right.value, column), column);
+                    if (result !== 0) return sort.direction === "asc" ? result : -result;
+                }
+                return left.index - right.index;
+            })
+            .map(({ value }) => value);
+    }
+
+    private getValue(row: T, column: ColumnDef<T>): unknown {
+        if (column.valueGetter) return column.valueGetter(row);
+        if (column.field) return row[column.field];
+        return undefined;
+    }
+
+    private updateColumnMetadata(): void {
+        if (!this.api) return;
+        const model = new Map(this.sortModel.map((item) => [item.columnId, item.direction]));
+        this.api.setColumns(
+            this.api.getState().columns.map((column) => ({
+                ...column,
+                sortable: column.sortable === false ? false : true,
+                sortState: model.get(column.id),
+            })),
+        );
+    }
 }
