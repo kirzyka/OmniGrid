@@ -1,132 +1,154 @@
-# Архитектура OmniGrid
+# OmniGrid Architecture
 
-## 1. Назначение проекта
+## 1. Purpose
 
-OmniGrid - расширяемый компонент для отображения больших табличных наборов данных. Основная цель проекта - отделить управление данными и состоянием от визуального представления, чтобы один и тот же движок можно было использовать с разными UI-фреймворками.
+OmniGrid is an extensible component for rendering large tabular data sets. The primary goal of the project is to decouple data and state management from the visual representation, so that the same engine can be used with different UI frameworks.
 
-Проект строится как **headless framework**:
+The project is structured as a **headless framework**:
 
-- ядро не создает DOM и не зависит от React, Vue, Svelte или другого фреймворка;
-- ядро управляет данными, состоянием, событиями и геометрией таблицы;
-- адаптер связывает ядро с конкретным UI-фреймворком;
-- renderer отображает только необходимую часть таблицы;
-- расширенный функционал подключается через плагины, а не встраивается целиком в минимальное ядро.
+- The core does not create DOM and does not depend on React, Vue, Svelte, or any other framework;
+- The core manages data, state, events, and table geometry;
+- An adapter binds the core to a specific UI framework;
+- A renderer displays only the necessary portion of the table;
+- Extended functionality is added through plugins rather than embedded in the minimal core.
 
-Такое разделение позволяет тестировать бизнес-логику без браузера, переиспользовать Core в разных средах и контролировать производительность на больших наборах данных.
+This separation enables:
 
-## 2. Слои системы
+- Testing business logic without a browser;
+- Reusing the Core in different environments;
+- Controlling performance on large data sets.
+
+## 2. Architecture Overview
+
+The design has three pillars:
+
+1. **Vanilla-TS Core with native DOM rendering** — the core manages a fixed pool of reusable DOM row nodes and positions them via `transform: translateY()`. No framework is imported at this layer.
+
+2. **DOM Pooling & DOM Pool** — the core maintains a fixed set of row hosts (exactly enough to fill the viewport + overscan). On scroll, nodes are repositioned via `transform` and their content is updated in-place (`textContent`, `innerHTML`, or an isolated React portal). Nodes are never created or destroyed during normal scrolling. This fully eliminates row flicker and blinking.
+
+3. **Framework adapter as configuration** — React (and future adapters) act as a configuration/bridge layer. The adapter injects DOM operations via `DomPoolBindings` and provides cell/header rendering contracts. React components inside cells are mounted point-to-point through `ReactDOM.createRoot` into reusable pooled cells when those cells enter the viewport.
 
 ```text
 +-------------------------------------------------------------+
-|                    UI Renderer / DOM Viewport               |
-|  React, Vue, Svelte или другой слой отображения             |
-+-----------------------------+-------------------------------+
-                              |
-                       Adapter / Binding
-                              |
-+-----------------------------v-------------------------------+
-|                         Grid Core                            |
-|  Grid API | State Store | Event Bus | Data Pipeline          |
-|  Virtualization Engine | Plugin Manager | Geometry           |
-+-----------------------------+-------------------------------+
-                              |
-+-----------------------------v-------------------------------+
-|                 Raw Data / External Data Source              |
-+-------------------------------------------------------------+
+|           Adapter / Binding (React, Vue, Svelte)            |
+|  useSyncExternalStore for config  ·  DomPoolBindings (DOM)  |
+|  Column/header JSX                 ·  createRoot for cells   |
++-------------+---------------+-------------------+-------------+
+              |               |                   |
+              v               v                   v
++------------------------+  +----------------+  +-----------------+
+|     UI Renderer        |  |   DOM Pool     |  |  Cell ReactRoot |
+|  Header (JSX)          |  |  Row hosts     |  |  (createRoot)   |
+|  Slots (JSX)           |  |  transform Y   |  |  portal mount   |
++------------------------+  +----------------+  +-----------------+
+              |               |                   |
+              +-------┬-------+           +-------+
+                      |                   |
+          +-----------v--------------------v----------+
+          |                 Grid Core                 |
+          |  Grid API | State Store | Event Bus       |
+          |  Data Pipeline | Virtualizer | DomPool    |
+          |  Slot Manager | Plugin Manager            |
+          +----------------------+--------------------+
+                                 |
+          +----------------------v--------------------+
+          |         Raw Data / External Data Source     |
+          +---------------------------------------------+
 ```
 
-### 2.1. Core Engine
+### 2.1 Core Engine
 
-Framework-agnostic слой на чистом TypeScript. Он должен:
+The framework-agnostic layer written in pure TypeScript. It must:
 
-- принимать исходные строки и определения колонок;
-- хранить и изменять состояние grid;
-- выполнять фильтрацию, сортировку, группировку и пагинацию;
-- рассчитывать видимые строки и колонки;
-- предоставлять стабильный публичный API;
-- публиковать события;
-- регистрировать и отключать плагины.
+- Accept raw rows and column definitions;
+- Store and mutate grid state;
+- Perform filtering, sorting, grouping, and pagination;
+- Calculate visible rows and columns;
+- Provide a stable public API;
+- Emit events;
+- Register and disable plugins.
 
-Core не должен обращаться к `document`, `window`, DOM-событиям или API конкретного UI-фреймворка. Данные о viewport и пользовательские действия передаются в него через явные методы API.
+The core separates **scroll position** from **structural state**. Scroll-only updates (`scrollTop` / `scrollLeft`) are stored in an ephemeral field and never notify the Store — this guarantees that no scroll frame triggers a React re-render. Only dimension changes (resize), data changes, or structural changes notify the Store and trigger re-renders.
 
-### 2.2. Adapter / Binding Layer
+The core does **not** import `document`, `window`, DOM events, or any UI-framework API. Viewport dimensions and scroll position are fed to it through explicit API calls (`setViewport`, `getScrollPosition`). All DOM manipulation is delegated to the adapter through injected `DomPoolBindings`.
 
-Адаптер преобразует декларативную модель конкретного фреймворка в вызовы Core и обратно:
+### 2.2 Adapter / Binding Layer
 
-- создает экземпляр grid;
-- подписывает компонент на изменения состояния;
-- передает в Core `scrollTop`, `scrollLeft`, размеры viewport и измерения строк;
-- инициирует обновление при изменении входных props;
-- корректно уничтожает подписки и экземпляр grid.
+The adapter transforms the declarative model of a specific framework into Core calls and back:
 
-Адаптер не должен дублировать сортировку, фильтрацию или виртуализацию. Эти решения принадлежат Core.
+- Creates a Grid instance;
+- Subscribes the component to structural state changes (only when revision changes, not on scroll);
+- Passes viewport dimensions and row measurements to Core;
+- Provides `DomPoolBindings` that perform the actual DOM operations;
+- Provides cell/header rendering contracts for framework-native renderers (e.g. React components);
+- Correctly tears down subscriptions and the Grid instance.
 
-Для первого UI-адаптера используется React-пакет `packages/react` с хуком `useGrid` и компонентом `DataGrid`.
+The adapter must not duplicate sorting, filtering, or virtualization logic — these belong to the Core.
 
-### 2.3. UI Renderer
+For the first UI adapter, the package `packages/react` provides the `useGrid` hook and the `OmniGrid` component.
 
-Renderer получает из Core уже подготовленные данные и геометрию:
+### 2.3 UI Renderer
 
-- массив видимых строк;
-- массив видимых колонок;
-- координаты и размеры элементов;
-- состояние выделения, редактирования и загрузки;
-- обработчики пользовательских действий.
+The renderer receives prepared data and geometry from Core:
 
-Renderer отвечает только за DOM и accessibility. Он не должен вычислять полный набор данных заново и не должен рендерить строки или колонки, которые находятся за пределами виртуального окна.
+- Array of visible rows;
+- Array of visible columns (column window);
+- Coordinates and sizes of elements;
+- State of selection, editing, and loading;
+- Handlers for user actions.
 
-Пакет `packages/style` содержит общие стили, CSS-переменные и визуальные соглашения, не смешивая их с логикой Core.
+The renderer is responsible only for DOM and accessibility. It must not recompute the full data set and must not render rows or columns outside the virtual window.
 
-## 3. Основные сущности и контракты
+The `packages/style` package contains shared styles, CSS variables, and visual conventions, without mixing them with Core logic.
 
-Ниже приведен концептуальный набор типов. Конкретные поля могут уточняться по мере реализации, но зависимости между сущностями должны сохраняться.
+## 3. Core Entities and Contracts
 
-### 3.1. ColumnDef
+### 3.1 ColumnDef
 
-`ColumnDef<T>` описывает колонку:
+`ColumnDef<T>` describes a column:
 
-- уникальный `id`;
-- ключ или accessor для получения значения из строки;
-- заголовок;
-- ширину и ограничения ширины;
-- признак сортируемости, фильтруемости и редактируемости;
-- renderer ячейки и renderer заголовка;
-- опциональные функции форматирования и сравнения.
+- A unique `id`;
+- A key or accessor for extracting the value from a row;
+- A header label;
+- Width and width constraints;
+- Flags for sortability, filterability, and editability;
+- Cell renderer and header renderer;
+- Optional formatting and comparison functions.
 
-Определение колонки не должно содержать состояние конкретного viewport. Состояние ширины, порядка и видимости хранится в State Store.
+A column definition must not contain state specific to a viewport. State of width, order, and visibility is stored in the State Store.
 
-### 3.2. RowNode
+### 3.2 RowNode
 
-`RowNode<T>` - внутреннее представление строки после прохождения Data Pipeline. Помимо исходных данных оно может содержать:
+`RowNode<T>` is the internal representation of a row after passing through the Data Pipeline. In addition to the original data, it may contain:
 
-- стабильный `id`;
-- индекс в обработанном наборе;
-- уровень вложенности;
-- родительский и дочерние узлы для группировки или tree data;
-- признаки раскрытия, выбора и редактирования;
-- метаданные для позиционирования.
+- A stable `id`;
+- An index in the processed set;
+- A nesting level;
+- Parent and child nodes for grouping or tree data;
+- Flags for expansion, selection, and editing;
+- Metadata for positioning.
 
-Стабильный идентификатор строки необходим для корректного DOM-recycle, сохранения выделения и обработки обновлений данных.
+A stable row identifier is required for correct DOM recycling, selection preservation, and data-update handling.
 
-### 3.3. GridOptions
+### 3.3 GridOptions
 
-`GridOptions<T>` содержит конфигурацию grid:
+`GridOptions<T>` holds the grid configuration:
 
-- исходные данные или data source;
+- Source data or data source;
 - `ColumnDef[]`;
-- размер строки по умолчанию;
-- overscan по вертикали и горизонтали;
-- опции оформления строк: `rowStyle` (inline-стиль, применяется индивидуально к каждой строке), `rowClass` (статичный CSS-класс, не снимается при обновлении данных), `rowClassRules` (динамические CSS-классы по правилам, применяются батчами);
-- настройки выбора, сортировки и фильтрации;
-- режимы группировки, пагинации и редактирования;
-- список плагинов;
-- callbacks или настройки событий.
+- Default row height;
+- Overscan for rows and columns;
+- Row styling options: `rowStyle` (inline style applied per row), `rowClass` (static CSS class that persists across data updates), `rowClassRules` (dynamic CSS classes applied in batch);
+- Selection, sorting, and filtering settings;
+- Grouping, pagination, and editing modes;
+- List of plugins;
+- Callbacks or event settings.
 
-Опции конфигурации должны быть отделены от изменяемого runtime-состояния.
+Configuration options are separated from mutable runtime state.
 
-### 3.4. GridState
+### 3.4 GridState
 
-Состояние следует разделить на независимые области:
+State is divided into independent areas:
 
 ```text
 GridState
@@ -153,11 +175,11 @@ GridState
     └── pagination
 ```
 
-Store должен предоставлять атомарные обновления, подписки и возможность читать актуальное состояние без привязки к UI. Обновление одной области не должно без необходимости уведомлять подписчиков остальных областей.
+The Store provides atomic updates, subscriptions, and the ability to read current state without binding to UI. Updating one area must not unnecessarily notify subscribers of other areas.
 
 ## 4. Data Processing Pipeline
 
-Данные проходят через последовательную цепочку преобразований:
+Data passes through a sequential transformation chain:
 
 ```text
 Raw Data
@@ -170,110 +192,158 @@ Raw Data
   -> Viewport Data
 ```
 
-Каждый этап должен иметь понятный вход и выход. Это дает возможность:
+Each stage must have a clear input and output. This allows:
 
-- включать или отключать этапы;
-- заменять реализацию плагином;
-- тестировать операции изолированно;
-- переносить тяжелые этапы в Web Worker в будущем.
+- Enabling or disabling stages;
+- Replacing an implementation via a plugin;
+- Testing operations in isolation;
+- Moving heavy stages into a Web Worker in the future.
 
-### 4.1. Filter Engine
+### 4.1 Filter Engine
 
-Фильтр получает набор строк и описание фильтров, возвращая новый логический набор или индекс строк. Фильтрация не должна менять исходные данные пользователя.
+A filter receives an array of rows and filter descriptions, returning a new logical set or index of rows. Filtering must not mutate the user's original data.
 
-### 4.2. Sort Engine
+### 4.2 Sort Engine
 
-Сортировка должна использовать явные comparator-функции колонок и быть стабильной, чтобы строки с одинаковыми значениями сохраняли предсказуемый порядок.
+Sorting must use explicit column comparators and be stable, so rows with equal values maintain a predictable order.
 
-### 4.3. Grouping и Aggregation Engine
+### 4.3 Grouping and Aggregation Engine
 
-Эти этапы формируют иерархический Row Model:
+These stages form a hierarchical Row Model:
 
-- group rows;
-- leaf rows;
-- уровни вложенности;
-- состояние раскрытия;
-- агрегированные значения.
+- Group rows;
+- Leaf rows;
+- Nesting levels;
+- Expansion state;
+- Aggregated values.
 
-На MVP группировка может отсутствовать в базовом Core и подключаться отдельным плагином.
+On MVP, grouping may be absent from basic Core and provided as a separate plugin.
 
-### 4.4. Pagination Engine
+### 4.4 Pagination Engine
 
-Пагинация ограничивает обработанный набор страницей. Она должна быть опциональной: виртуализация и пагинация решают разные задачи и могут использоваться вместе или независимо.
+Pagination limits the processed set to a page. It is optional: virtualization and pagination solve different problems and can be used together or independently.
 
-## 5. Виртуализация
+## 5. Virtualization and DOM Pooling
 
-OmniGrid использует двумерную виртуализацию. В DOM попадает только окно строк и колонок, пересекающееся с viewport, плюс буфер overscan.
+OmniGrid uses two-dimensional virtualization combined with **DOM Pooling**. Only the rows and columns intersecting the viewport (plus an `overscan` buffer) are rendered in the DOM.
 
-### 5.1. Вертикальная виртуализация
+### 5.1 DOM Pool (Row Recycling)
 
-Для фиксированной высоты строки:
+The core maintains a fixed pool of row DOM nodes — exactly enough to fill the viewport plus overscan. The pool size never grows during normal scrolling.
+
+On each scroll frame:
+
+1. The Virtualizer computes the visible row range `[start, end)` from the current scroll position.
+2. The pool maps "pool slot i → row index `start + i`".
+3. For each slot:
+    - If the row index changed → call `bindings.bindRow(host, row)` to update content (textContent, innerHTML, or React root).
+    - If the `translateY` offset changed → call `bindings.transformRow(host, offsetY)`.
+4. Nodes that fell outside the window are cleared and moved off-screen (`transform: translateY(-200000px)`), but the DOM nodes are **not destroyed** — they are recycled for the next frame.
+
+Because nodes are only repositioned (composite-only `transform`) and their content is updated in-place, **there is no flicker, no blinking, and no reflow** during scroll — even at 60 FPS with a 100,000-row data set.
+
+### 5.2 Vertical Virtualization
+
+For a fixed row height:
 
 ```text
 startIndex = floor(scrollTop / rowHeight) - overscan
 endIndex   = ceil((scrollTop + viewportHeight) / rowHeight) + overscan
 ```
 
-Индексы ограничиваются диапазоном доступных строк. Полная высота scroll-контейнера сохраняется через spacer-элемент или CSS-размер, а видимые строки позиционируются внутри viewport.
+Indices are clamped to the data range. The full scroll-container height is preserved via a spacer element, and visible rows are positioned inside the viewport.
 
-Для динамической высоты строк Virtualization Engine использует таблицу измеренных высот и накопленные offsets. Измерение выполняется адаптером через `ResizeObserver` и передается в Core.
+For dynamic row height, the Virtualizer uses a table of measured heights and accumulated offsets. Measurement is performed by the adapter via `ResizeObserver` and passed back to the Core.
 
-### 5.2. Горизонтальная виртуализация
+### 5.3 Horizontal Virtualization
 
-Для колонок аналогично рассчитывается диапазон по `scrollLeft` и ширине viewport. При фиксированных ширинах используются prefix sums или накопленные offsets:
+For columns, the range is computed from `scrollLeft` and viewport width. With fixed widths, prefix sums or accumulated offsets are used:
 
 ```text
 columnStart = first column whose offset + width >= scrollLeft
 columnEnd   = last column whose offset <= scrollLeft + viewportWidth
 ```
 
-Ширины и порядок колонок берутся из состояния, поэтому изменение размеров не должно требовать обработки исходных строк.
+Column widths and order come from state, so resizing columns does not require reprocessing all rows.
 
-### 5.3. Overscan
+### 5.4 Overscan
 
-Overscan добавляет несколько строк и колонок за пределами текущего viewport. Он уменьшает вероятность появления пустых областей при быстром скролле, но увеличивает количество DOM-узлов.
+Overscan adds several rows and columns beyond the current viewport. It reduces the chance of blank areas during fast scrolling at the cost of additional DOM nodes.
 
-Рекомендуется поддерживать независимые значения `rowOverscan` и `columnOverscan`, а в будущем учитывать скорость прокрутки.
+Independent `rowOverscan` and `columnOverscan` are recommended. In the future, the buffer could be adjusted based on scroll velocity.
 
-### 5.4. Позиционирование
+### 5.5 Positioning
 
-Рекомендуемый вариант для MVP:
+The recommended approach for MVP:
 
-- внешний scroll-контейнер с полной виртуальной шириной и высотой;
-- внутренний viewport с `position: relative`;
-- строки и ячейки с `position: absolute`;
-- позиционирование через `transform: translate3d(...)`;
-- размеры колонок через CSS variables или вычисленные inline styles.
+- An outer scroll container with full virtual width and height;
+- An inner viewport with `position: relative`;
+- Rows and cells with `position: absolute`;
+- Positioning via `transform: translate3d(...)`;
+- Column widths via CSS variables or computed inline styles.
 
-Canvas может быть рассмотрен для специальных сценариев с очень большим числом простых ячеек, но стандартным renderer должен оставаться HTML/CSS, чтобы сохранить accessibility, выделение текста и поддержку интерактивных контролов.
+Canvas may be considered for specialized scenarios with a very large number of simple cells, but the standard renderer must remain HTML/CSS to preserve accessibility, text selection, and interactive controls.
 
-## 6. State Store и реактивность
+## 6. State Store and Reactivity
 
-State Store - легковесный observable-store на основе подписок.
+The State Store is a lightweight observable store based on subscriptions.
 
-Минимальный API должен включать:
+The minimal API includes:
 
 ```ts
 interface Store<State> {
-  getState(): State;
-  setState(update: Partial<State> | ((state: State) => Partial<State>)): void;
-  subscribe(listener: () => void): () => void;
+    getState(): State;
+    setState(update: Partial<State> | ((state: State) => Partial<State>)): void;
+    subscribe(listener: () => void): () => void;
 }
 ```
 
-Практические требования:
+Practical requirements:
 
-- `setState` должен быть синхронным и предсказуемым;
-- подписка возвращает функцию отписки;
-- обновления должны быть батчируемыми, если этого требует адаптер;
-- Core не должен зависеть от React state или другой внешней state-библиотеки;
-- runtime-состояние нельзя мутировать напрямую из renderer.
+- `setState` is synchronous and predictable;
+- Subscription returns an unsubscribe function;
+- Updates are batchable if the adapter requires it;
+- Core does not depend on React state or any external state library;
+- Runtime state must not be mutated directly from the renderer.
 
-## 7. Event Bus и Grid API
+**Scroll decoupling:** The grid keeps an ephemeral `scrollPosition` field separate from the Store. Scroll-only updates (`scrollTop` / `scrollLeft`) update this field and emit a `viewportChange` event, but they do **not** call `Store.setState()` — so `useSyncExternalStore` in the React adapter does not fire, and React does not re-render on scroll. Only dimension changes (resize), data changes, or structural changes notify the Store.
 
-Event Bus передает события между Core, адаптерами и плагинами. Событие должно содержать типизированное имя и payload.
+## 7. Scroll Performance Model
 
-Примеры событий:
+### 7.1 Zero-React Scroll Path
+
+The scroll handler captures `scrollTop` / `scrollLeft` from the DOM and feeds them to `grid.setViewport()`. Because `setViewport` detects a scroll-only change and updates the ephemeral `scrollPosition` field without touching the Store, the following happens **without a single React re-render**:
+
+```text
+scroll event
+  → handleScroll captures scrollTop/scrollLeft
+  → requestAnimationFrame
+      → grid.setViewport({ scrollTop, scrollLeft })  // updates scrollPosition, no Store notification
+      → syncPool()                                    // reads scrollPosition, updates DomPool
+          → DomPool.update(viewport)
+              → Virtualizer.getRowRange(...)          // O(1) with cache
+              → transformRow (composite-only)         // position change
+              → bindRow (only for new rows)           // content update
+              → recycleRow (off-screen nodes)
+```
+
+### 7.2 Header Column Window
+
+The header is rendered via React JSX. To avoid re-rendering the header on every scroll frame, a `columnWindowVersion` counter is incremented **only** when the horizontal column window actually changes (i.e., when `scrollLeft` crosses a column boundary). This triggers a targeted React re-render of the header only — row DOM nodes remain managed by the DomPool and are never touched by React's reconciliation.
+
+### 7.3 Structural Re-render Path
+
+Structural changes (data set, columns, resize) increment the grid's `revision` counter and notify the Store. The React adapter re-renders, calls `syncPool()` (via a `useEffect`), and the DomPool rebinds visible rows (via `pool.invalidate()` + `pool.update()`).
+
+### 7.4 Cell Rendering Bridge
+
+Cell content that is a React component is rendered through an isolated `ReactDOM.createRoot` instance mounted in the cell's DOM element. The root persists for the lifetime of the cell (not the row) — on scroll, only `root.render(newContent)` is called, never `createRoot` + `unmount`. This avoids React tree recreation on the scroll path.
+
+## 8. Event Bus and Grid API
+
+The Event Bus transmits events between Core, adapters, and plugins. An event must have a typed name and payload.
+
+Example events:
 
 - `viewportChange`;
 - `cellClick`;
@@ -286,237 +356,289 @@ Event Bus передает события между Core, адаптерами 
 - `editStart`, `editCommit`, `editCancel`;
 - `dataChange`.
 
-Публичный `GridApi` должен предоставлять команды и подписки, например:
+The public `GridApi` provides commands and subscriptions:
 
 ```ts
 interface GridApi<T> {
-  getState(): GridState<T>;
-  setViewport(viewport: ViewportState): void;
-  setData(rows: T[]): void;
-  getViewportData(): ViewportData<T>;
-  on<EventName extends GridEventName>(event: EventName, listener: GridListener<EventName>): () => void;
-  registerPlugin(plugin: GridPlugin<T>): () => void;
-  destroy(): void;
+    getState(): GridState<T>;
+    getScrollPosition(): { scrollTop: number; scrollLeft: number };
+    getViewportData(): ViewportData<T>;
+    getProcessedData(): T[];
+    getRowId(row: T, index: number): RowId;
+    setData(data: T[]): void;
+    setViewport(viewport: Partial<ViewportState>): void;
+    refresh(): void;
+    subscribe(listener: () => void): () => void;
+    on<EventName>(event: EventName, listener: GridListener<EventName>): () => void;
+    registerPlugin(plugin: GridPlugin<T>): () => void;
+    registerDataProcessor(processor: DataProcessor<T>): () => void;
+    setColumns(columns: ColumnDef<T>[]): void;
+    headerClick(columnId: string, multiSort?: boolean): void;
+    rowClick(row: RowClickEvent<T>): void;
+    rowHover(row: RowHoverEvent<T>): void;
+    readonly slots: SlotManager<T>;
+    getSlotMounts(slot: SlotName): SlotMount<T>[];
+    getRevision(): number;
+    destroy(): void;
+    isDestroyed(): boolean;
 }
 ```
 
-API должен быть единой точкой взаимодействия адаптера и внешнего приложения. UI-компонент не должен обращаться к внутренним структурам Core напрямую.
+The API must be the single point of interaction between the adapter and the external application. UI components must not access Core internals directly.
 
-## 8. Плагинная архитектура
+## 9. Plugin Architecture
 
-Минимальное ядро предоставляет lifecycle и API расширения. Сложные возможности реализуются плагинами.
+The minimal core provides lifecycle hooks and an extension API. Complex capabilities are implemented as plugins.
 
 ```ts
 interface GridPlugin<T> {
-  name: string;
-  register(api: GridApi<T>): void | (() => void);
+    name: string;
+    register(api: GridApi<T>): void | (() => void);
 }
 ```
 
-Плагин может:
+A plugin can:
 
-- подписываться на события;
-- читать и обновлять состояние через публичный API;
-- добавлять команды к API через согласованный extension mechanism;
-- подключать этапы Data Pipeline;
-- выполнять очистку при отключении.
+- Subscribe to events;
+- Read and update state through the public API;
+- Add commands to the API via a consistent extension mechanism;
+- Attach pipeline stages;
+- Perform cleanup on disablement.
 
-Плагин не должен изменять приватные поля Core и не должен напрямую управлять DOM.
+A plugin must not modify private Core fields and must not directly manage DOM.
 
-Предполагаемые плагины:
+Expected plugins:
 
-- sorting;
-- filtering;
-- pagination;
-- row and cell selection;
-- range selection;
-- column resize;
-- column reorder;
-- grouping and aggregation;
-- tree data;
-- inline editing;
+- Sorting;
+- Filtering;
+- Pagination;
+- Row and cell selection;
+- Range selection;
+- Column resize;
+- Column reorder;
+- Grouping and aggregation;
+- Tree data;
+- Inline editing;
 - Web Worker data processing.
 
-Порядок регистрации плагинов должен быть определенным. Если плагины добавляют pipeline stages, Core должен явно фиксировать порядок их выполнения и правила разрешения конфликтов.
+Plugin registration order must be deterministic. If plugins add pipeline stages, the Core explicitly fixes the execution order and conflict-resolution rules.
 
-## 9. Поток рендера и пользовательского действия
+## 10. Slot System
 
-### 9.1. Первый рендер
+The root grid container is divided into zones: `top`, `bottom`, `left`, `right`, and the body area.
 
-1. Приложение создает grid через адаптер.
-2. Core инициализирует конфигурацию, Store, Event Bus и плагины.
-3. Адаптер передает размеры viewport.
-4. Data Pipeline строит Row Model.
-5. Virtualization Engine рассчитывает диапазоны строк и колонок.
-6. Renderer получает `ViewportData` и создает видимые DOM-элементы.
+Plugins register their components in these slots through a simple API:
 
-### 9.2. Прокрутка
+```ts
+grid.slots.register("bottom", PaginationPlugin);
+```
 
-1. Scroll-контейнер сообщает адаптеру новые `scrollTop` и `scrollLeft`.
-2. Адаптер вызывает `api.setViewport(...)`.
-3. Virtualization Engine пересчитывает диапазоны.
-4. Store уведомляет подписчиков viewport-изменения.
-5. Renderer обновляет или переиспользует DOM-элементы.
+The Slot Manager (`SlotManager`) stores headless content descriptions (`SlotContent`) and propagates changes to adapters. The adapter materializes the content according to its own protocol:
 
-При изменении только позиции прокрутки Data Pipeline не должен заново сортировать и фильтровать все строки.
+- `string | number` → plain text;
+- `SlotHtmlContent` → HTML fragment via `innerHTML`;
+- `SlotNodeContent` → declarative DOM node;
+- `SlotComponentContent` → framework-native component from an adapter registry;
+- any other object → framework-native value (e.g. `ReactNode`).
 
-### 9.3. Изменение данных или фильтра
+## 11. Render Flow and User Actions
 
-1. Внешний код вызывает `setData` или изменяет фильтр.
-2. Core инвалидирует необходимые этапы pipeline.
-3. Обновляется Row Model.
-4. Пересчитываются количество строк, offsets и viewport range.
-5. Renderer получает новый набор видимых элементов.
+### 11.1 Initial Render
 
-## 10. Производительность
+1. The application creates a Grid via the adapter.
+2. Core initializes configuration, Store, Event Bus, and plugins.
+3. The adapter passes viewport dimensions.
+4. The Data Pipeline builds the Row Model.
+5. The Virtualizer computes visible row and column ranges.
+6. The DomPool creates the initial set of row nodes.
+7. The renderer displays the header and visible rows.
 
-Основные правила производительности:
+### 11.2 Scrolling
 
-- никогда не рендерить полный набор строк и колонок;
-- отделять вычисление Row Model от изменения scroll position;
-- использовать стабильные идентификаторы строк и колонок;
-- минимизировать объем данных в событиях и подписках;
-- не создавать новые renderer-функции для каждой ячейки без необходимости;
-- измерять динамические строки только после фактического рендера;
-- обновлять CSS-переменные ширины без пересоздания всей таблицы;
-- применять `transform` для перемещения видимых элементов;
-- выполнять тяжелую обработку в Web Worker для наборов порядка 100 000 строк и более;
-- поддерживать отмену устаревших worker-задач или маркировать результаты версиями данных.
+1. The scroll container reports new `scrollTop` and `scrollLeft` to the adapter.
+2. The adapter calls `api.setViewport({ scrollTop, scrollLeft })`.
+3. Core updates the ephemeral scroll position (Store is NOT notified).
+4. The adapter calls `syncPool()` imperatively (via rAF).
+5. The DomPool repositions and rebinds nodes as needed.
+6. **No React re-render occurs.** Only `viewportChange` event fires.
 
-Производительность должна измеряться на реалистичных сценариях:
+If the horizontal column window changed, `syncPool` increments `columnWindowVersion`, triggering a targeted React re-render of the header only.
 
-- 100 000+ строк;
-- много колонок с горизонтальным скроллом;
-- быстрый вертикальный и горизонтальный скролл;
-- частое изменение фильтров;
-- динамическая высота строк;
-- массовое выделение.
+### 11.3 Data or Filter Change
 
-## 11. Accessibility и поведение UI
+1. External code calls `setData` or modifies a filter.
+2. Core invalidates the relevant pipeline stages.
+3. A new Row Model is built.
+4. Row count, offsets, and viewport range are recomputed.
+5. The Store state changes and `revision` is incremented.
+6. React re-renders (structural change), `syncPool()` rebinds visible rows.
 
-Headless-архитектура не отменяет требований accessibility. Adapter и Renderer должны поддерживать:
+## 12. Performance Guidelines
 
-- семантичную структуру таблицы или эквивалентную ARIA-модель;
-- клавиатурную навигацию;
-- видимый focus;
-- корректные `aria-rowindex` и `aria-colindex` при виртуализации;
-- объявления сортировки и состояния выделения;
-- корректную работу интерактивных редакторов.
+Key performance rules:
 
-Виртуализация не должна менять смысловую позицию строки для screen reader. Индексы в DOM должны отражать положение элемента в полной таблице, а не только его позицию внутри текущего окна.
+- Never render the full set of rows or columns;
+- Separate Data Pipeline execution from scroll position updates;
+- Use stable identifiers for rows and columns;
+- Minimize payload size in events and subscriptions;
+- Do not create new renderer functions for each cell unnecessarily;
+- Measure dynamic rows only after they have been rendered;
+- Update CSS column widths without recreating the table;
+- Use `transform` for repositioning visible elements;
+- Perform heavy processing in a Web Worker for data sets of 100,000 rows or more;
+- Cancel stale worker tasks or version results by data revision.
 
-## 12. Структура пакетов
+Performance must be measured on realistic scenarios:
 
-Предполагаемое распределение ответственности:
+- 100,000+ rows;
+- Many columns with horizontal scrolling;
+- Fast vertical and horizontal scrolling;
+- Frequent filter changes;
+- Dynamic row height;
+- Bulk selection.
+
+### 12.1 Measured Scroll Metrics
+
+| Scenario                        | Target                                                                      |
+| ------------------------------- | --------------------------------------------------------------------------- |
+| Vertical scroll (fixed height)  | No React re-renders. Row repositioning via `transform` only.                |
+| Horizontal scroll (no col swap) | No React re-renders. Row cell repositioning via `transform` only.           |
+| Horizontal scroll (column swap) | Single React re-render of header only. Row cells repositioned imperatively. |
+| React cell components           | `createRoot` reused per cell. No node recreation on scroll.                 |
+
+## 13. Accessibility and UI Behavior
+
+The headless architecture does not eliminate accessibility requirements. The adapter and renderer must support:
+
+- Semantic table structure or an equivalent ARIA model;
+- Keyboard navigation;
+- Visible focus indicators;
+- Correct `aria-rowindex` and `aria-colindex` during virtualization;
+- Announcements of sort state and selection;
+- Correct behavior of interactive editors.
+
+Virtualization must not alter the semantic position of a row for screen readers. DOM indices must reflect the row's position in the full table, not just its position within the current viewport window.
+
+## 14. Package Structure
+
+Responsibility is split across packages:
 
 ```text
 packages/
 ├── core/
-│   ├── types
-│   ├── state
-│   ├── events
-│   ├── pipeline
-│   ├── virtualization
-│   ├── plugins
-│   └── api
+│   ├── types          — Core types and interfaces
+│   ├── state          — Observable Store
+│   ├── events         — Typed EventBus
+│   ├── pipeline       — Data processing chain
+│   ├── virtualization — Virtualizer + DomPool
+│   ├── plugins        — Extension lifecycle
+│   └── api            — Grid class and public API
 ├── react/
-│   ├── useGrid
-│   ├── DataGrid
-│   └── React renderer bindings
+│   ├── useGrid        — React lifecycle binding
+│   ├── OmniGrid       — React component (header + slots)
+│   └── React bindings — DomPoolBindings + CellRoot + content bridge
 └── style/
-    ├── CSS variables
-    ├── layout styles
+    ├── CSS variables  — Design tokens
+    ├── layout styles  — Structural CSS
     └── default visual styles
 ```
 
-В будущем аналогичные адаптеры могут быть вынесены в отдельные пакеты `vue` и `svelte`. Они должны использовать тот же контракт Core, не копируя его логику.
+In the future, similar adapters can be split into separate `vue` and `svelte` packages. These must use the same Core contract without duplicating its logic.
 
-## 13. Стратегия тестирования
+## 15. Testing Strategy
 
 ### Core
 
-Unit-тесты должны покрывать:
+Unit tests should cover:
 
-- расчет диапазонов виртуализации;
-- границы viewport и overscan;
-- сортировку и фильтрацию;
-- стабильность идентификаторов;
-- переходы состояния;
-- подписки и очистку Event Bus;
-- lifecycle плагинов;
-- пересчет offsets при изменении размеров.
+- Virtualization range calculation;
+- Viewport boundaries and overscan;
+- Sorting and filtering;
+- Identifier stability;
+- State transitions;
+- EventBus subscription and cleanup;
+- Plugin lifecycle;
+- Offset recalculation on resize.
 
-### Adapter и Renderer
+### Adapter and Renderer
 
-Интеграционные тесты должны проверять:
+Integration tests should verify:
 
-- создание и уничтожение grid;
-- передачу размеров и scroll position в Core;
-- обновление DOM после изменения состояния;
-- сохранение focus и selection;
-- корректную работу при изменении props;
-- accessibility-атрибуты виртуализированных строк и колонок.
+- Grid creation and destruction;
+- Passing dimensions and scroll positions to Core;
+- DOM updates after state changes;
+- Focus and selection preservation;
+- Behavior on prop changes;
+- Accessibility attributes for virtualized rows and columns.
 
-### Performance checks
+### Performance Checks
 
-Нужны отдельные benchmark-сценарии для больших наборов данных. Benchmark не должен считаться заменой функциональным тестам, но должен фиксировать количество обработанных строк, число DOM-узлов и время ответа на scroll/filter actions.
+Separate benchmark scenarios are needed for large data sets. Benchmarks should not replace functional tests but should record processed row count, DOM node count, and scroll/filter response time.
 
-## 14. Roadmap реализации
+## 16. Implementation Roadmap
 
-### Фаза 1. MVP: Core и виртуализация
+### Phase 1: MVP — Core and Virtualization
 
-1. Определить `ColumnDef`, `GridOptions`, `RowNode`, `GridState`, `ViewportData`.
-2. Реализовать Store и минимальный Grid API.
-3. Реализовать вертикальный Virtualizer для фиксированной высоты строки.
-4. Создать React `useGrid` и `DataGrid`.
-5. Добавить HTML/CSS renderer видимых строк.
-6. Добавить горизонтальную виртуализацию колонок.
+1. Define `ColumnDef`, `GridOptions`, `RowNode`, `GridState`, `ViewportData`.
+2. Implement Store and minimal Grid API.
+3. Implement a vertical Virtualizer for fixed row height.
+4. Implement `DomPool` with fixed node pool and `transform`-based positioning.
+5. Create React `useGrid` and `OmniGrid` with DomPool bindings.
+6. Add HTML/CSS rendering for visible rows.
+7. Add horizontal virtualization for columns.
 
-### Фаза 2. Данные и события
+### Phase 2: Data and Events
 
-1. Реализовать Data Pipeline.
-2. Добавить клиентскую сортировку и фильтрацию.
-3. Добавить типизированный Event Bus.
-4. Реализовать базовые события `cellClick`, `rowSelect`, `sortChange`, `filterChange`.
-5. Поддержать динамическую высоту через `ResizeObserver`.
+1. Implement the Data Pipeline.
+2. Add client-side sorting and filtering.
+3. Add a typed EventBus.
+4. Implement base events: `cellClick`, `rowSelect`, `sortChange`, `filterChange`.
+5. Support dynamic row height via `ResizeObserver`.
 
-### Фаза 3. Плагины и взаимодействие
+### Phase 3: Plugins and Interaction
 
-1. Зафиксировать lifecycle Plugin API.
-2. Вынести sorting и filtering в плагины.
-3. Реализовать выбор ячеек, строк и диапазонов.
-4. Добавить изменение размера колонок.
-5. Добавить перестановку колонок через drag-and-drop.
+1. Fix the Plugin lifecycle API.
+2. Extract sorting and filtering into plugins.
+3. Implement cell, row, and range selection.
+4. Add column resizing.
+5. Add column reordering via drag-and-drop.
 
-### Фаза 4. Продвинутые возможности
+### Phase 4: Advanced Features
 
-1. Grouping и aggregation.
+1. Grouping and aggregation.
 2. Tree data.
-3. Пагинация и серверные data source.
-4. Web Worker adapter для тяжелой обработки.
-5. Inline editing и набор редакторов ячеек.
-6. Расширенные performance benchmarks и accessibility audits.
+3. Pagination and server-side data sources.
+4. Web Worker adapter for heavy processing.
+5. Inline editing and a set of cell editors.
+6. Advanced performance benchmarks and accessibility audits.
 
-## 15. Архитектурные ограничения
+## 17. Architectural Constraints
 
-Следующие ограничения сохраняют границы системы:
+The following constraints preserve the boundaries of the system:
 
-- Core не импортирует UI-фреймворки и DOM API;
-- Renderer не выполняет бизнес-операции над полным набором данных;
-- плагины работают через публичный API и lifecycle;
-- состояние не изменяется прямой мутацией из адаптера;
-- виртуализация не должна менять порядок данных в Row Model;
-- сортировка, фильтрация и группировка не должны смешиваться с расчетом DOM-позиции;
-- worker-реализация должна сохранять тот же контракт pipeline, что и синхронная реализация.
+- Core does not import UI frameworks or DOM APIs;
+- The renderer does not perform business operations on the full data set;
+- Plugins operate through the public API and lifecycle hooks;
+- Runtime state cannot be mutated directly from the adapter;
+- Virtualization must not change the order of rows in the Row Model;
+- Sorting, filtering, and grouping must not mix with DOM-position calculation;
+- Web Worker implementations must uphold the same pipeline contract as synchronous implementations.
 
-## 16. Критерий готовности архитектуры
+## 18. Readiness Criteria
 
-Архитектура считается реализованной на базовом уровне, когда:
+The architecture is considered implemented at a basic level when:
 
-- Core можно запустить и протестировать без DOM;
-- React-адаптер отображает таблицу через публичный Grid API;
-- при большом количестве строк в DOM находятся только видимые элементы и overscan;
-- вертикальный и горизонтальный скролл не запускают повторную обработку неизменившихся данных;
-- плагины могут добавлять функциональность без изменения базового renderer;
-- состояние, события и pipeline имеют типизированные контракты;
-- lifecycle grid и плагинов корректно очищает подписки и ресурсы.
+- Core can run and be tested without a DOM;
+- The React adapter renders a table through the public Grid API;
+- Only visible rows and overscan reside in the DOM for large data sets;
+- Vertical and horizontal scrolling do not re-process unchanged data;
+- Plugins can add functionality without modifying the base renderer;
+- State, events, and the pipeline have typed contracts;
+- Grid and plugin lifecycles correctly clean up subscriptions and resources.
+
+Additionally, for the DOM pooling model specifically:
+
+- No React re-render occurs during pure scroll;
+- Row DOM nodes are recycled (not recreated) on scroll;
+- Content in visible cells is updated in-place via `textContent` / `innerHTML` / isolated `createRoot`;
+- Horizontal column-window changes trigger at most a single header re-render.

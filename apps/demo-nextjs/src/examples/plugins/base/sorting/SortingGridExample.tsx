@@ -23,8 +23,8 @@ export function SortingGridExample() {
     const sortingPlugin = useMemo(() => new SortingPlugin<AlchemyRow>(), []);
 
     useEffect(() => {
-        getDemoDataset("alchemy").then((data: any) => setData(data as AlchemyRow[]));
+        getDemoDataset("alchemy", { count: 500 }).then((data: any) => setData(data as AlchemyRow[]));
     }, []);
 
-    return <OmniGrid columns={columns} data={data} plugins={[sortingPlugin]} style={{ height: "100%", width: "100%" }} />;
+    return <OmniGrid columns={columns} data={data} plugins={[sortingPlugin]} rowOverscan={20} style={{ height: "100%", width: "100%" }} />;
 }

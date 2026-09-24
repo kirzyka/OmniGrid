@@ -1,17 +1,11 @@
 "use client";
 
-import { use } from "react";
-
-import { MinionRow } from "@/src/data/types";
+import { useMinionsDS } from "@/src/data/dataService";
 import { ROW_STYLES_EXAMPLE_COLUMNS } from "@/src/examples/rows/row-styles/rowStylesExampleColDefs";
 import { OmniGrid } from "@omnigrid/react";
 
-interface Props {
-    dataPromise: Promise<MinionRow[]>;
-}
-
-export function RowStyleExample({ dataPromise }: Props) {
-    const data = use(dataPromise);
+export function RowStyleExample() {
+    const data = useMinionsDS();
 
     return (
         <OmniGrid

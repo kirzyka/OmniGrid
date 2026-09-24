@@ -1,7 +1,7 @@
 {
-    "name": "@omnigrid/sorting-plugin",
+    "name": "@omnigrid/pagination-plugin",
     "version": "0.1.0",
-    "description": "Headless sorting plugin for OmniGrid",
+    "description": "Headless pagination plugin for OmniGrid. Mounts a pager into the bottom slot.",
     "license": "MIT",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",

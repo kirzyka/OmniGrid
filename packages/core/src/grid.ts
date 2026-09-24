@@ -1,4 +1,5 @@
 import { EventBus } from "./events";
+import { SlotManager } from "./slots";
 import { Store } from "./store";
 import type {
     DataProcessor,
@@ -10,6 +11,9 @@ import type {
     RowClickEvent,
     RowHoverEvent,
     RowId,
+    ScrollPosition,
+    SlotMount,
+    SlotName,
     ViewportData,
     ViewportState,
 } from "./types";
@@ -22,7 +26,20 @@ export class Grid<T> implements GridApi<T> {
     private readonly cleanupPlugins = new Set<() => void>();
     private readonly dataProcessors = new Set<DataProcessor<T>>();
     private readonly resolveRowId: NonNullable<GridOptions<T>["getRowId"]>;
+    public readonly slots: SlotManager<T>;
+    private processedDataCache: T[] | null = null;
+    private revision = 0;
     private destroyed = false;
+
+    /**
+     * Separate ephemeral scroll position that is NOT stored in the Store.
+     *
+     * Scroll-only updates (scrollTop/scrollLeft) flow through here and never
+     * trigger Store notifications, so React (or any adapter subscribed to the
+     * Store) does NOT re-render on every scroll frame. Dimension changes
+     * (width / height) still go through the Store and DO trigger re-renders.
+     */
+    private scrollPosition: ScrollPosition = { scrollTop: 0, scrollLeft: 0 };
 
     public constructor(options: GridOptions<T>) {
         const state: GridState<T> = {
@@ -40,6 +57,12 @@ export class Grid<T> implements GridApi<T> {
             rowOverscan: state.rowOverscan,
             columnOverscan: state.columnOverscan,
         });
+        this.slots = new SlotManager<T>({
+            onChange: (slot: SlotName, mounts: SlotMount<T>[]) => {
+                this.store.setState({});
+                this.events.emit("slotsChange", { slot, mounts });
+            },
+        });
         this.store.subscribe(() => this.events.emit("stateChange", this.store.getState()));
         options.plugins?.forEach((plugin) => this.registerPlugin(plugin));
     }
@@ -48,18 +71,23 @@ export class Grid<T> implements GridApi<T> {
         return this.store.getState();
     }
 
+    /** Returns the current ephemeral scroll position (not part of Store state). */
+    public getScrollPosition(): ScrollPosition {
+        return this.scrollPosition;
+    }
+
     public getViewportData(): ViewportData<T> {
         const state = this.getState();
         const processedData = this.getProcessedData();
         const visibleColumns = state.columns.filter((column) => !column.hidden);
         const rowRange = this.virtualizer.getRowRange(
             processedData.length,
-            state.viewport.scrollTop,
+            this.scrollPosition.scrollTop,
             state.viewport.height,
         );
         const columnRange = this.virtualizer.getColumnRange(
             visibleColumns,
-            state.viewport.scrollLeft,
+            this.scrollPosition.scrollLeft,
             state.viewport.width,
         );
         const columnOffsets = this.virtualizer.getColumnOffsets(visibleColumns, state.viewport.width);
@@ -82,7 +110,13 @@ export class Grid<T> implements GridApi<T> {
     }
 
     public getProcessedData(): T[] {
-        return [...this.dataProcessors].reduce((data, processor) => processor(data), this.getState().data);
+        // Cache is invalidated by setData / setColumns / processor registration.
+        // During scroll the pipeline is NOT re-run — critical optimization for
+        // DOM Pool operation with large row counts.
+        if (this.processedDataCache !== null) return this.processedDataCache;
+        const result = [...this.dataProcessors].reduce((data, processor) => processor(data), this.getState().data);
+        this.processedDataCache = result;
+        return result;
     }
 
     public getRowId(row: T, index: number): RowId {
@@ -91,43 +125,83 @@ export class Grid<T> implements GridApi<T> {
 
     public setData(data: T[]): void {
         this.assertActive();
+        this.processedDataCache = null;
+        this.revision += 1;
         this.store.setState({ data });
         this.events.emit("dataChange", data);
     }
 
     public setViewport(viewport: Partial<ViewportState>): void {
         this.assertActive();
-        const current = this.getState().viewport;
+        const state = this.store.getState();
+        const current = state.viewport;
         const nextViewport = { ...current, ...viewport };
+
+        // isUnchanged compares against the ephemeral scrollPosition, NOT
+        // the Store's stale scrollTop (which scroll-only updates never
+        // write to). Comparing against Store.scrollTop would make every
+        // return-to-zero a no-op: 0 === 0 → early return → scrollPosition
+        // never updated → DomPool renders rows at the old offset → empty grid.
         const isUnchanged =
             nextViewport.width === current.width &&
             nextViewport.height === current.height &&
-            nextViewport.scrollTop === current.scrollTop &&
-            nextViewport.scrollLeft === current.scrollLeft;
+            nextViewport.scrollTop === this.scrollPosition.scrollTop &&
+            nextViewport.scrollLeft === this.scrollPosition.scrollLeft;
         if (isUnchanged) return;
-        this.store.setState({ viewport: nextViewport });
+
+        // Update the ephemeral scroll position ONLY for properties explicitly
+        // passed. Dimension-only updates (e.g. scrollbar-detection calling
+        // `setViewport({ width })`) must NOT clobber scrollPosition with a
+        // stale Store scrollTop — otherwise the DomPool syncs to the wrong
+        // position until the next rAF tick, causing blank/half-empty grids
+        // on rapid scroll-to-top.
+        if (viewport.scrollTop !== undefined) {
+            this.scrollPosition.scrollTop = viewport.scrollTop;
+        }
+        if (viewport.scrollLeft !== undefined) {
+            this.scrollPosition.scrollLeft = viewport.scrollLeft;
+        }
+
+        // Only notify Store subscribers (e.g. React via useSyncExternalStore)
+        // when dimensions change. Scroll-only updates must NOT trigger a
+        // Store notification — otherwise every scroll frame re-renders React.
+        const hasStructuralChange =
+            nextViewport.width !== current.width || nextViewport.height !== current.height;
+
+        if (hasStructuralChange) {
+            this.store.setState({ viewport: nextViewport });
+        }
+
         this.events.emit("viewportChange", nextViewport);
     }
 
     /**
-     * Перерисовывает текущий viewport: уведомляет подписчиков state store,
-     * чтобы адаптер заново отрендерил видимые строки и пересчитал динамические
-     * классы строк (rowClassRules) одним проходом — батчем.
+     * Repaints the current viewport: notifies Store subscribers that
+     * visible rows and row classes (rowClassRules) may need rebinding
+     * in a single batch. Increments revision so adapters can detect
+     * structural changes.
      */
     public refresh(): void {
         this.assertActive();
+        this.revision += 1;
         this.store.setState({});
     }
 
     public setColumns(columns: GridState<T>["columns"]): void {
         this.assertActive();
+        this.processedDataCache = null;
+        this.revision += 1;
         this.store.setState({ columns });
     }
 
     public registerDataProcessor(processor: DataProcessor<T>): () => void {
         this.assertActive();
         this.dataProcessors.add(processor);
-        const unregister = () => this.dataProcessors.delete(processor);
+        this.processedDataCache = null;
+        const unregister = () => {
+            this.dataProcessors.delete(processor);
+            this.processedDataCache = null;
+        };
         return unregister;
     }
 
@@ -170,11 +244,22 @@ export class Grid<T> implements GridApi<T> {
         return unregister;
     }
 
+    public getSlotMounts(slot: SlotName): SlotMount<T>[] {
+        return this.slots.getMounts(slot);
+    }
+
+    /** Monotonic counter for structural changes (refresh / data / columns). */
+    public getRevision(): number {
+        return this.revision;
+    }
+
     public destroy(): void {
         if (this.destroyed) return;
         this.cleanupPlugins.forEach((cleanup) => cleanup());
         this.cleanupPlugins.clear();
         this.dataProcessors.clear();
+        this.processedDataCache = null;
+        this.slots.clear();
         this.store.clear();
         this.events.clear();
         this.destroyed = true;

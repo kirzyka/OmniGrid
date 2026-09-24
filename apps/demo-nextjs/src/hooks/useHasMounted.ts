@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 
 /**
- * Простой хук, возвращающий true, если компонент успешно примонтирован в браузере.
- * Помогает избежать ошибок гидратации (SSR vs CSR mismatch) для динамических данных.
+ * Simple hook that returns `true` once the component has successfully mounted
+ * in the browser. Helps avoid hydration mismatch errors (SSR vs CSR) when
+ * consuming dynamic data.
  */
 export function useHasMounted() {
     const [hasMounted, setHasMounted] = useState(false);

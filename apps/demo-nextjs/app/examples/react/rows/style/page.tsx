@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 
 import { ExampleShell } from "@/src/components/ui/example/ExampleShell";
-import { getDemoDataset } from "@/src/data/dataService";
+import { getMinions } from "@/src/data/dataService";
 import type { MinionRow } from "@/src/data/types";
 import { GetRowClassExample } from "@/src/examples/rows/row-styles/get-row-class/GetRowClassExample";
 import getRowClassExampleSource from "@/src/examples/rows/row-styles/get-row-class/GetRowClassExample.tsx?raw";
@@ -18,7 +18,7 @@ import rowStyleExampleSource from "@/src/examples/rows/row-styles/row-style/RowS
 import rowStylesExampleColDefsSource from "@/src/examples/rows/row-styles/rowStylesExampleColDefs?raw";
 
 export default function RowStyleExamplePage() {
-    const data = useMemo(() => getDemoDataset("minions", { count: 100 }), []) as Promise<MinionRow[]>;
+    const data = useMemo(() => getMinions({ count: 100 }), []) as Promise<MinionRow[]>;
 
     return (
         <>
@@ -32,7 +32,7 @@ export default function RowStyleExamplePage() {
                     { label: "rowStylesExampleColDefs.ts", code: rowStylesExampleColDefsSource },
                 ]}
             >
-                <RowStyleExample dataPromise={data} />
+                <RowStyleExample />
             </ExampleShell>
             <ExampleShell
                 id="get-row-style"

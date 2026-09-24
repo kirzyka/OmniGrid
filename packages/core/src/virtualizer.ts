@@ -30,9 +30,10 @@ export class Virtualizer<T> {
     const visibleStart = Math.floor(Math.max(0, scrollTop) / rowHeight);
     const visibleEnd = Math.ceil((Math.max(0, scrollTop) + Math.max(0, viewportHeight)) / rowHeight);
 
-    // Гарантированный буфер: видимая страница + минимум полная страница сверху
-    // и снизу. Даже если кадр отрисован с коммитом кадр том назад (rAF-обновление
-    // окна), видимая область всё равно полностью покрыта реальными строками.
+    // Guaranteed buffer: the visible page + at least one full extra page
+    // above and below. Even if a frame is rendered with a one-frame
+    // lookahead (rAF viewport update), the visible area is always fully
+    // covered by real rows — no blank gaps.
     const visibleRows = Math.max(1, visibleEnd - visibleStart);
     const overscan = Math.max(this.options.rowOverscan, visibleRows);
     const windowed: Range = {
@@ -40,8 +41,8 @@ export class Virtualizer<T> {
       end: Math.min(count, visibleEnd + overscan),
     };
 
-    // Тот же набор данных, позиция и размер окна: возвращаем ранее вычисленный
-    // диапазон (StrictMode double-render, повторные ререндеры).
+    // Same data, position, and window size: return the previously computed
+    // range (handles StrictMode double-render and redundant re-renders).
     if (
       scrollTop === this.lastScrollTop &&
       count === this.lastRowCount &&
@@ -63,8 +64,8 @@ export class Virtualizer<T> {
     const prevVisibleStart = Math.floor(Math.max(0, previousTop) / rowHeight);
     const prevVisibleEnd = Math.ceil((Math.max(0, previousTop) + Math.max(0, viewportHeight)) / rowHeight);
 
-    // Обычный скролл: окно с полностраничным буфером и так покрывает и старое,
-    // и новое положения (прыжок меньше суммы буферов).
+    // Normal scroll: the half-page buffer already covers both the old and
+    // new positions (scroll delta is smaller than the combined buffer).
     const closeEnough =
       visibleStart <= prevVisibleEnd + overscan &&
       prevVisibleStart <= visibleEnd + overscan;
@@ -73,8 +74,8 @@ export class Virtualizer<T> {
       return windowed;
     }
 
-    // Телепорт (прыжок больше буфера): сплошной «коридор» от старой позиции
-    // к новой, с ограничением размера, чтобы не плодить сотни DOM-узлов.
+    // Teleport (large jump): build a continuous "corridor" from the old
+    // position to the new one, capped to avoid spawning hundreds of nodes.
     const corridorCap = visibleRows * 2 + this.options.rowOverscan * 2;
     const corridorStart = Math.max(0, Math.min(prevVisibleStart, visibleStart) - overscan);
     const corridorEnd = Math.min(count, Math.max(prevVisibleEnd, visibleEnd) + overscan);

@@ -15,6 +15,7 @@
 .omnigrid {
     border-collapse: collapse;
     border: 1px solid #d9e0ea;
+    scrollbar-gutter: stable;
 }
 
 [role="cell"] {
@@ -83,6 +84,99 @@
     border-bottom: 1px solid #c5cfdd;
     border-right: 1px solid #c5cfdd;
     color: #334155;
+}
+
+/* ------------------------------------------------------------------ */
+/* Slot Architecture                                                   */
+/* ------------------------------------------------------------------ */
+
+.omnigrid-layout {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.omnigrid-layout-body {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+}
+
+.omnigrid-slot {
+    display: flex;
+}
+
+.omnigrid-slot-top,
+.omnigrid-slot-bottom {
+    width: 100%;
+    padding: 4px 8px;
+    background: #f4f7fb;
+}
+
+.dark .omnigrid-slot-top,
+.dark .omnigrid-slot-bottom {
+    background: #1a1d1e;
+}
+
+.omnigrid-slot-left,
+.omnigrid-slot-right {
+    flex-shrink: 0;
+    padding: 0 8px;
+    background: #f4f7fb;
+    align-self: stretch;
+}
+
+.dark .omnigrid-slot-left,
+.dark .omnigrid-slot-right {
+    background: #1a1d1e;
+}
+
+.omnigrid-slot-item-group {
+    display: flex;
+    gap: 8px;
+}
+
+.omnigrid-slot-pos-center {
+    justify-content: center;
+}
+
+.omnigrid-slot-pos-end {
+    justify-content: flex-end;
+}
+
+.omnigrid-slot-item {
+    display: flex;
+    align-items: center;
+}
+
+/* Headless pager (PaginationPlugin). */
+.omnigrid-pagination {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+}
+
+.omnigrid-pagination-btn {
+    background: #ffffff;
+    border: 1px solid #c5cfdd;
+    border-radius: 4px;
+    color: #334155;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1.4;
+    padding: 3px 10px;
+}
+
+.omnigrid-pagination-btn:disabled {
+    cursor: default;
+    opacity: 0.5;
+}
+
+.dark .omnigrid-pagination-btn {
+    background: #2a2f30;
+    border-color: #3a3f40;
+    color: #e8ebe9;
 }
 
 .dark [role="columnheader"] {

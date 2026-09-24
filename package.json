@@ -3,13 +3,26 @@
     "private": false,
     "scripts": {
         "build": "npx turbo run build",
-        "build:library": "npm run build:core && npm run build:react && npm run build:style",
+        "build:library": "npm run build:core && npm run build:react && npm run build:style && npm run build:plugins",
         "build:core": "npm --workspace @omnigrid/core run build",
         "build:react": "npm --workspace @omnigrid/react run build",
         "build:style": "npm --workspace @omnigrid/style run build",
+        "build:plugins": "npm run build:sorting && npm run build:selection && npm run build:pagination",
+        "build:sorting": "npm --workspace @omnigrid/sorting-plugin run build",
+        "build:selection": "npm --workspace @omnigrid/selection-plugin run build",
+        "build:pagination": "npm --workspace @omnigrid/pagination-plugin run build",
         "dev": "turbo run dev --parallel",
         "test": "turbo run test",
-        "lint": "turbo run lint"
+        "lint": "turbo run lint",
+        "publish": "npm run publish:core && npm run publish:react && npm run publish:style && npm run publish:plugins",
+        "publish:core": "npm --workspace @omnigrid/core publish",
+        "publish:react": "npm --workspace @omnigrid/react publish",
+        "publish:style": "npm --workspace @omnigrid/style publish",
+        "publish:plugins": "npm run publish:sorting && npm run publish:selection && npm run publish:pagination && npm run publish:pro",
+        "publish:sorting": "npm --workspace @omnigrid/sorting-plugin publish",
+        "publish:selection": "npm --workspace @omnigrid/selection-plugin publish",
+        "publish:pagination": "npm --workspace @omnigrid/pagination-plugin publish",
+        "publish:pro": "npm --workspace @omnigrid/plugin-pro publish"
     },
     "workspaces": [
         "apps/*",

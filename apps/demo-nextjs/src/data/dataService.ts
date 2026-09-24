@@ -1,13 +1,14 @@
+import { useEffect, useState } from "react";
+
 import type { AlchemyRow, MinionRow, SpeedingTicketRow, SuperweaponNode } from "./types";
 
 export type DemoDataset = "minions" | "speedingTickets" | "alchemy" | "superweapon";
 
-export interface SpeedingTicketQuery {
+export interface DatasetOptions {
     offset?: number;
-    limit?: number;
+    count?: number;
+    delay?: number;
 }
-
-type DatasetOptions = SpeedingTicketQuery & { count?: number };
 
 export type DatasetResult = MinionRow[] | SpeedingTicketRow[] | AlchemyRow[] | SuperweaponNode;
 
@@ -118,6 +119,24 @@ function createSuperweapon(): SuperweaponNode {
             },
         ],
     };
+}
+
+export async function getMinions(options: DatasetOptions): Promise<MinionRow[]> {
+    const { count, delay } = options;
+
+    await new Promise<void>((resolve) => setTimeout(resolve, delay ?? 0));
+
+    return createMinions(count ?? 100);
+}
+
+export function useMinionsDS(options?: DatasetOptions): MinionRow[] {
+    const [minions, setMinions] = useState<MinionRow[]>([]);
+
+    useEffect(() => {
+        getMinions(options ?? {}).then(setMinions);
+    }, []);
+
+    return minions;
 }
 
 export async function getDemoDataset(dataset: DemoDataset, options: DatasetOptions = {}): Promise<DatasetResult> {
