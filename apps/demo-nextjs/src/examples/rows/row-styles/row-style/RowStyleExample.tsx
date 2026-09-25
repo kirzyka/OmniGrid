@@ -1,7 +1,7 @@
 "use client";
 
 import { useMinionsDS } from "@/src/data/dataService";
-import { ROW_STYLES_EXAMPLE_COLUMNS } from "@/src/examples/rows/row-styles/rowStylesExampleColDefs";
+import { minionsMColDefs } from "@/src/examples/common/colDefs/minionsMColDefs";
 import { OmniGrid } from "@omnigrid/react";
 
 export function RowStyleExample() {
@@ -9,7 +9,7 @@ export function RowStyleExample() {
 
     return (
         <OmniGrid
-            columns={ROW_STYLES_EXAMPLE_COLUMNS}
+            columns={minionsMColDefs}
             data={data}
             getRowId={(row) => row.id}
             rowStyle={{ backgroundColor: "rgba(5, 173, 152, 0.10)" }}

@@ -1,10 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-
 import { ExampleShell } from "@/src/components/ui/example/ExampleShell";
-import { getMinions } from "@/src/data/dataService";
-import type { MinionRow } from "@/src/data/types";
+import minionsMColDefsSource from "@/src/examples/common/colDefs/minionsMColDefs.ts?raw";
 import { GetRowClassExample } from "@/src/examples/rows/row-styles/get-row-class/GetRowClassExample";
 import getRowClassExampleSource from "@/src/examples/rows/row-styles/get-row-class/GetRowClassExample.tsx?raw";
 import { GetRowStyleExample } from "@/src/examples/rows/row-styles/get-row-style/GetRowStyleExample";
@@ -15,21 +12,23 @@ import { RowClassExample } from "@/src/examples/rows/row-styles/row-class/RowCla
 import rowClassExampleSource from "@/src/examples/rows/row-styles/row-class/RowClassExample.tsx?raw";
 import { RowStyleExample } from "@/src/examples/rows/row-styles/row-style/RowStyleExample";
 import rowStyleExampleSource from "@/src/examples/rows/row-styles/row-style/RowStyleExample.tsx?raw";
-import rowStylesExampleColDefsSource from "@/src/examples/rows/row-styles/rowStylesExampleColDefs?raw";
 
 export default function RowStyleExamplePage() {
-    const data = useMemo(() => getMinions({ count: 100 }), []) as Promise<MinionRow[]>;
-
     return (
         <>
             <p className="mb-5 font-sans text-[11px] font-bold uppercase tracking-[.12em] text-mint">Base</p>
             <ExampleShell
                 id="row-style"
                 title="Row style"
-                description="rowStyle provides a CSS style object that is applied individually to each row element. It is a static style — use rowClassRules for dynamic per-row styling."
+                description={
+                    <span>
+                        <b>rowStyle</b> provides a CSS style object that is applied individually to each row element. It is a static style — use{" "}
+                        <b>rowClassRules</b>&nbsp; for dynamic per-row styling.
+                    </span>
+                }
                 sources={[
                     { label: "RowStyleExample.tsx", code: rowStyleExampleSource },
-                    { label: "rowStylesExampleColDefs.ts", code: rowStylesExampleColDefsSource },
+                    { label: "minionsMiddleColDefsSource.ts", code: minionsMColDefsSource },
                 ]}
             >
                 <RowStyleExample />
@@ -37,46 +36,64 @@ export default function RowStyleExamplePage() {
             <ExampleShell
                 id="get-row-style"
                 title="Get row style"
-                description="getRowStyle function provides a CSS style object that is applied individually to each row element."
+                description={
+                    <span>
+                        <b>getRowStyle</b> function provides a CSS style object that is applied individually to each row element.
+                    </span>
+                }
                 sources={[
                     { label: "GetRowStyleExample.tsx", code: getRowStyleExampleSource },
-                    { label: "rowStylesExampleColDefs.ts", code: rowStylesExampleColDefsSource },
+                    { label: "minionsMiddleColDefsSource.ts", code: minionsMColDefsSource },
                 ]}
             >
-                <GetRowStyleExample dataPromise={data} />
+                <GetRowStyleExample />
             </ExampleShell>
             <ExampleShell
                 id="row-class"
                 title="Row class"
-                description="rowClass applies a CSS class to every row. The class is not removed when the data is refreshed — try the Refresh data button and watch the styling stay in place."
+                description={
+                    <span>
+                        <b>rowClass</b> applies a CSS class to every row. The class is not removed when the data is refreshed — try the Refresh data button and
+                        watch the styling stay in place.
+                    </span>
+                }
                 sources={[
                     { label: "RowClassExample.tsx", code: rowClassExampleSource },
-                    { label: "rowStylesExampleColDefs.ts", code: rowStylesExampleColDefsSource },
+                    { label: "minionsMiddleColDefsSource.ts", code: minionsMColDefsSource },
                 ]}
             >
-                <RowClassExample dataPromise={data} />
+                <RowClassExample />
             </ExampleShell>
             <ExampleShell
                 id="get-row-class"
                 title="Get row class"
-                description="getRowClass function returns CSS class(es) for each row. Classes are applied dynamically on every render."
+                description={
+                    <span>
+                        <b>getRowClass</b> function returns CSS class(es) for each row. Classes are applied dynamically on every render.
+                    </span>
+                }
                 sources={[
                     { label: "GetRowClassExample.tsx", code: getRowClassExampleSource },
-                    { label: "rowStylesExampleColDefs.ts", code: rowStylesExampleColDefsSource },
+                    { label: "minionsMiddleColDefsSource.ts", code: minionsMColDefsSource },
                 ]}
             >
-                <GetRowClassExample dataPromise={data} />
+                <GetRowClassExample />
             </ExampleShell>
             <ExampleShell
                 id="row-class-rules"
                 title="Row class rules"
-                description="rowClassRules maps rule names to predicates. Every row whose predicate returns true gets the rule name applied as a CSS class. Rules are dynamic and applied in batches — toggle the high-value rule and all visible rows update in a single pass."
+                description={
+                    <span>
+                        <b>rowClassRules</b> maps rule names to predicates. Every row whose predicate returns true gets the rule name applied as a CSS class.
+                        Rules are dynamic and applied in batches — toggle the high-value rule and all visible rows update in a single pass.
+                    </span>
+                }
                 sources={[
                     { label: "RowClassRulesExample.tsx", code: rowClassRulesExampleSource },
-                    { label: "rowStylesExampleColDefs.ts", code: rowStylesExampleColDefsSource },
+                    { label: "minionsMiddleColDefsSource.ts", code: minionsMColDefsSource },
                 ]}
             >
-                <RowClassRulesExample dataPromise={data} />
+                <RowClassRulesExample />
             </ExampleShell>
         </>
     );

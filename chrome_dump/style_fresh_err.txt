@@ -1,0 +1,5 @@
+[19668:20164:0925/162118.433:INFO:components\enterprise\browser\controller\chrome_browser_cloud_management_controller.cc:241] No machine level policy manager exists.
+[19668:20164:0925/162118.640:WARNING:chrome\browser\extensions\external_registry_loader_win.cc:236] Error observing HKLM: Отказано в доступе. (0x5)
+[19668:1944:0925/162118.660:WARNING:chrome\browser\media\router\discovery\discovery_network_list_win.cc:230] Failed to open WLAN handle: Служба не запущена. (0x426)
+[19668:20164:0925/162119.979:INFO:CONSOLE:45] "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold", source: webpack-internal:///(app-pages-browser)/../../node_modules/next/dist/next-devtools/shared/forward-logs-shared.js (45)
+[19668:20164:0925/162120.464:INFO:CONSOLE:45] "[HMR] connected", source: webpack-internal:///(app-pages-browser)/../../node_modules/next/dist/next-devtools/shared/forward-logs-shared.js (45)

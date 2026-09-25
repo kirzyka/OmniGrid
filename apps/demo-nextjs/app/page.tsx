@@ -1,15 +1,7 @@
-"use client";
-
-import { useMemo } from "react";
-
 import { SiteHeader } from "@/src/components/ui/SiteHeader";
-import { createDemoData } from "@/src/data/demoData";
-import { DEMO_COLUMNS } from "@/src/examples/common/GridConfigs";
-import { OmniGrid } from "@omnigrid/react";
+import { LandingDemo } from "@/src/examples/landing/LandingDemo";
 
 export default function HomePage() {
-    const data = useMemo(createDemoData, []);
-
     return (
         <main className="flex h-screen flex-col overflow-hidden bg-paper dark:bg-paper-dark">
             <SiteHeader />
@@ -83,19 +75,7 @@ export default function HomePage() {
                             This is the plain OmniGrid: no plugins, just data, columns, and a reliable viewport.
                         </p>
                     </div>
-                    <div className="border border-slate bg-paper dark:border-slate-dark dark:bg-paper-dark">
-                        <div className="flex items-center justify-between border-b border-slate px-4 py-[13px] font-sans text-[11px] uppercase dark:border-slate-dark">
-                            <span>
-                                <i className="mr-[7px] inline-block size-[7px] rounded-full bg-mint dark:bg-mint-dark" /> Live dataset
-                            </span>
-                            <span>
-                                {data.length.toLocaleString("en-US")} rows <b>·</b> {DEMO_COLUMNS.length} columns
-                            </span>
-                        </div>
-                        <div className="h-[420px] sm:h-[540px]">
-                            <OmniGrid columns={DEMO_COLUMNS} data={data} style={{ height: "100%", width: "100%" }} />
-                        </div>
-                    </div>
+                    <LandingDemo />
                 </section>
 
                 <section className="flex flex-col gap-4 mx-auto max-w-[1280px] border-t border-slate px-5 py-[100px] sm:px-8 sm:pb-[115px] dark:border-slate-dark">

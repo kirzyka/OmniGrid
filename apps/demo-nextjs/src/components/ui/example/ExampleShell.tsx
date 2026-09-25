@@ -16,7 +16,7 @@ export interface ExampleSource {
 interface ExampleShellProps {
     id?: string;
     title: string;
-    description: string;
+    description: ReactNode;
     sources: ExampleSource[];
     children: ReactNode;
 }
@@ -60,7 +60,7 @@ export function ExampleShell({ id, title, description, sources, children }: Exam
                     </button>
                 </div>
                 {activeTab === "preview" ? (
-                    <div className="h-105 sm:h-110">{children}</div>
+                    <div className="h-105">{children}</div>
                 ) : (
                     <div className="relative  bg-paper dark:bg-paper-dark">
                         <div className="flex gap-1 overflow-x-auto border-b border-white/15 px-3" role="tablist" aria-label="Example source files">

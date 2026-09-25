@@ -1,19 +1,16 @@
 "use client";
 
-import { use, useState } from "react";
+import { useState } from "react";
 
+import { useMinionsDS } from "@/src/data/dataService";
 import { MinionRow } from "@/src/data/types";
-import { ROW_STYLES_EXAMPLE_COLUMNS } from "@/src/examples/rows/row-styles/rowStylesExampleColDefs";
+import { minionsMColDefs } from "@/src/examples/common/colDefs/minionsMColDefs";
 import { OmniGrid, type RowClassRules } from "@omnigrid/react";
 
 import "./style/rowClassRulesExample.css";
 
-interface Props {
-    dataPromise: Promise<MinionRow[]>;
-}
-
-export function RowClassRulesExample({ dataPromise }: Props) {
-    const data = use(dataPromise);
+export function RowClassRulesExample() {
+    const data = useMinionsDS();
     const [highlightHighSalary, setHighlightHighSalary] = useState(false);
 
     const rowClassRules: RowClassRules<MinionRow> = {
@@ -37,13 +34,15 @@ export function RowClassRulesExample({ dataPromise }: Props) {
                         Rules re-evaluate and apply in a single batch across all visible rows.
                     </span>
                 </div>
-                <OmniGrid
-                    columns={ROW_STYLES_EXAMPLE_COLUMNS}
-                    data={data}
-                    getRowId={(row: MinionRow) => row.id}
-                    rowClassRules={rowClassRules}
-                    style={{ height: "100%", width: "100%" }}
-                />
+                <div className="flex-1 min-h-0">
+                    <OmniGrid
+                        columns={minionsMColDefs}
+                        data={data}
+                        getRowId={(row: MinionRow) => row.id}
+                        rowClassRules={rowClassRules}
+                        style={{ height: "100%", width: "100%" }}
+                    />
+                </div>
             </div>
         </>
     );

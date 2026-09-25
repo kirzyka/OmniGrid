@@ -2,10 +2,10 @@
 
 import { CodeBlock, type CodeBlockSource } from "@/src/components/ui/code/CodeBlock";
 import dataSource from "@/src/data/staticMinions.ts?raw";
+import minionsSColDefs from "@/src/examples/common/colDefs/minionsSColDefs.ts?raw";
 import quickStart1Source from "@/src/examples/quick-start/QuickStart1Example.tsx?raw";
 import { QuickStart2Example } from "@/src/examples/quick-start/QuickStart2Example";
 import quickStart2Source from "@/src/examples/quick-start/QuickStart2Example.tsx?raw";
-import columnDefsSource from "@/src/examples/quick-start/quickStartColumnDefs.ts?raw";
 
 const INSTALL_REACT_SNIPPET = `npm install @omnigrid/react`;
 const INSTALL_PLUGIN_SNIPPET = `npm install @omnigrid/selection-plugin @omnigrid/sorting-plugin`;
@@ -26,7 +26,7 @@ const STEPS: QuickStartStep[] = [
         title: "Describe your columns",
         description:
             "Create a ColumnDef for each visible field. Give every column a stable id, then choose its field, width, or flex behavior. Formatters, cell renderers, visibility, sorting, and cell alignment are configured here; the align property affects only cell content.",
-        source: { code: columnDefsSource },
+        source: { code: minionsSColDefs },
     },
     {
         title: "Connect the data",

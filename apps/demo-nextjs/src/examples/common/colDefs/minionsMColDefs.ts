@@ -1,7 +1,7 @@
 import { MinionRow } from "@/src/data/types";
 import { ColumnDef } from "@omnigrid/react";
 
-export const ROW_STYLES_EXAMPLE_COLUMNS: ColumnDef<MinionRow>[] = [
+export const minionsMColDefs: ColumnDef<MinionRow>[] = [
     { id: "id", field: "id", header: "ID", width: 90 },
     { id: "name", field: "name", header: "Name", flex: 1, minWidth: 180 },
     { id: "boss", field: "boss", header: "Boss", flex: 1, minWidth: 160 },

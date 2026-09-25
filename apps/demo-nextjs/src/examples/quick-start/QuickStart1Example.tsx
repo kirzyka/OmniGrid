@@ -1,10 +1,9 @@
 "use client";
 
 import { MINIONS_DATASET } from "@/src/data/staticMinions";
+import { minionsSColDefs } from "@/src/examples/common/colDefs/minionsSColDefs";
 import { OmniGrid } from "@omnigrid/react";
 
-import { quickStartColumnDefs } from "./quickStartColumnDefs";
-
 export function QuickStart1Example() {
-    return <OmniGrid columns={quickStartColumnDefs} data={MINIONS_DATASET} style={{ width: "100%" }} />;
+    return <OmniGrid columns={minionsSColDefs} data={MINIONS_DATASET} style={{ width: "100%" }} />;
 }

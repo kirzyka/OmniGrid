@@ -1,8 +1,7 @@
 "use client";
 
 import { ExampleShell } from "@/src/components/ui/example/ExampleShell";
-import gridConfigSource from "@/src/examples/common/GridConfigs.ts?raw";
-import rendererSource from "@/src/examples/common/renderers/StatusRenderer.tsx?raw";
+import speedTicketsMColDefsSource from "@/src/examples/common/colDefs/speedTicketsMColDefs.ts?raw";
 import { CoreGridExample } from "@/src/examples/core-grid/CoreGridExample";
 import exampleSource from "@/src/examples/core-grid/CoreGridExample.tsx?raw";
 
@@ -15,8 +14,7 @@ export default function CoreGridExamplePage() {
                 description="The framework-agnostic core handles rows, columns, viewport state, and virtualization. The React adapter only needs your data and column definitions."
                 sources={[
                     { label: "CoreGridExample.tsx", code: exampleSource },
-                    { label: "GridConfigs.ts", code: gridConfigSource },
-                    { label: "StatusRenderer.tsx", code: rendererSource },
+                    { label: "speedTicketsMColDefs.ts", code: speedTicketsMColDefsSource },
                 ]}
             >
                 <CoreGridExample />

@@ -1,7 +1,7 @@
 "use client";
 
 import { ExampleShell } from "@/src/components/ui/example/ExampleShell";
-import gridConfigSource from "@/src/examples/common/GridConfigs.ts?raw";
+import alchemyMColDefsSource from "@/src/examples/common/colDefs/alchemyMColDefs.ts?raw";
 import { CheckboxSelectionGridExample } from "@/src/examples/plugins/base/selection/CheckboxSelectionGridExample";
 import checkboxSelectionGridExampleSrc from "@/src/examples/plugins/base/selection/CheckboxSelectionGridExample.tsx?raw";
 import { MultiSelectionGridExample } from "@/src/examples/plugins/base/selection/MultiSelectionGridExample";
@@ -21,7 +21,7 @@ export default function SelectionExamplePage() {
                 description="Use row click for single selection."
                 sources={[
                     { label: "SingleSelectionGridExample.tsx", code: singleSelectionGridExampleSrc },
-                    { label: "GridConfigs.ts", code: gridConfigSource },
+                    { label: "alchemyMColDefs.ts", code: alchemyMColDefsSource },
                 ]}
             >
                 <SingleSelectionGridExample />
@@ -32,7 +32,7 @@ export default function SelectionExamplePage() {
                 description="Use row clicks or click with 'Shift' key for multi selection."
                 sources={[
                     { label: "SelectionGridExample.tsx", code: multiSelectionGridExampleSrc },
-                    { label: "GridConfigs.ts", code: gridConfigSource },
+                    { label: "alchemyMColDefs.ts", code: alchemyMColDefsSource },
                 ]}
             >
                 <MultiSelectionGridExample />
@@ -43,7 +43,7 @@ export default function SelectionExamplePage() {
                 description="Use row clicks or checkbox for multi selection."
                 sources={[
                     { label: "CheckboxSelectionGridExample.tsx", code: checkboxSelectionGridExampleSrc },
-                    { label: "GridConfigs.ts", code: gridConfigSource },
+                    { label: "alchemyMColDefs.ts", code: alchemyMColDefsSource },
                 ]}
             >
                 <CheckboxSelectionGridExample />
@@ -54,7 +54,7 @@ export default function SelectionExamplePage() {
                 description="Use isRowSelectable function to prevent row selection."
                 sources={[
                     { label: "UnselectableRowsExample.tsx", code: unselectableRowsExampleSrc },
-                    { label: "GridConfigs.ts", code: gridConfigSource },
+                    { label: "alchemyMColDefs.ts", code: alchemyMColDefsSource },
                 ]}
             >
                 <UnselectableRowsExample />

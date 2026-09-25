@@ -2,31 +2,24 @@
 
 import { useMemo } from "react";
 
-import { type DemoRow, createDemoData } from "@/src/data/demoData";
-import { DEMO_COLUMNS } from "@/src/examples/common/GridConfigs";
+import { useAlchemyDS } from "@/src/data/dataService";
+import { AlchemyRow } from "@/src/data/types";
+import { alchemyMColDefs } from "@/src/examples/common/colDefs/alchemyMColDefs";
 import { OmniGrid } from "@omnigrid/react";
 import { SelectionPlugin } from "@omnigrid/selection-plugin";
 
 export function UnselectableRowsExample() {
-    const data = useMemo(createDemoData, []);
+    const data = useAlchemyDS();
     const selectionPlugin = useMemo(
         () =>
-            new SelectionPlugin<DemoRow>({
+            new SelectionPlugin<AlchemyRow>({
                 mode: "multiple",
                 showHeaderCheckbox: true,
                 showRowCheckboxes: true,
-                isRowSelectable: (row) => row.status !== "archived",
+                isRowSelectable: (row) => row.dangerLevel !== 5,
             }),
         [],
     );
 
-    return (
-        <OmniGrid
-            columns={DEMO_COLUMNS}
-            data={data}
-            getRowId={(row) => row.id}
-            plugins={[selectionPlugin]}
-            style={{ height: "100%", width: "100%" }}
-        />
-    );
+    return <OmniGrid columns={alchemyMColDefs} data={data} getRowId={(row) => row.id} plugins={[selectionPlugin]} style={{ height: "100%", width: "100%" }} />;
 }

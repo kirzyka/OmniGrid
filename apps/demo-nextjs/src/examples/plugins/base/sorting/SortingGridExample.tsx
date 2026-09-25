@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
-import { getDemoDataset } from "@/src/data/dataService";
+import { useAlchemyDS } from "@/src/data/dataService";
 import { AlchemyRow } from "@/src/data/types";
 import { ColumnDef, OmniGrid } from "@omnigrid/react";
 import { SortingPlugin } from "@omnigrid/sorting-plugin";
@@ -19,12 +19,8 @@ const columns: ColumnDef<AlchemyRow>[] = [
 ];
 
 export function SortingGridExample() {
-    const [data, setData] = useState<AlchemyRow[]>([]);
+    const data = useAlchemyDS();
     const sortingPlugin = useMemo(() => new SortingPlugin<AlchemyRow>(), []);
-
-    useEffect(() => {
-        getDemoDataset("alchemy", { count: 500 }).then((data: any) => setData(data as AlchemyRow[]));
-    }, []);
 
     return <OmniGrid columns={columns} data={data} plugins={[sortingPlugin]} rowOverscan={20} style={{ height: "100%", width: "100%" }} />;
 }
